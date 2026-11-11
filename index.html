@@ -94,7 +94,19 @@
   .map-top{position:absolute;top:14px;left:14px;right:14px;z-index:10;display:flex;gap:9px;
     align-items:flex-start;pointer-events:none;flex-wrap:wrap}
   .legend{pointer-events:auto;background:rgba(24,20,16,.92);border:1px solid var(--line);
-    border-radius:7px;padding:9px 12px;backdrop-filter:blur(8px);box-shadow:0 6px 20px rgba(0,0,0,.28)}
+    border-radius:7px;backdrop-filter:blur(8px);box-shadow:0 6px 20px rgba(0,0,0,.28);max-width:min(340px,72vw)}
+  .lg-head{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;padding:8px 12px}
+  .lg-head:hover .lg-title{color:#e8c887}
+  .legend b{font-size:10px;letter-spacing:1.5px;color:var(--gold);display:block}
+  .lg-head .lg-title{font-size:10px;letter-spacing:1.5px;color:var(--gold);white-space:nowrap}
+  .lg-head .caret{font-size:9px;color:var(--muted);transition:transform .18s ease;margin-left:auto;flex:none}
+  .lg-head .lg-chips{display:flex;gap:3px;margin-left:4px;flex:none}
+  .lg-head .lg-chips i{width:7px;height:7px;border-radius:2px;display:block}
+  .legend.open .lg-chips{display:none}
+  .legend.open .caret{transform:rotate(180deg)}
+  .lg-body{display:none;padding:0 12px 9px}
+  .legend.open .lg-body{display:block}
+  .legend.open .lg-head{border-bottom:1px solid #3b322a;padding-bottom:7px;margin-bottom:2px}
   .legend b{font-size:10px;letter-spacing:1.5px;color:var(--gold);display:block;margin-bottom:7px}
   .lg{display:flex;align-items:center;gap:7px;font-size:11px;color:#ddd2c2;margin:4px 0;white-space:nowrap}
   .lg i{width:16px;height:3px;border-radius:2px;background:var(--lc)}
@@ -334,8 +346,13 @@
       <div>地图服务暂时未能加载。<br>左侧「部队」与右侧「详情」面板中的番号、路线、任务与事件资料仍可完整查阅。</div>
     </div>
     <div class="map-top">
-      <div class="legend">
-        <b>路线 / 番号色标 · LEGEND</b>
+      <div class="legend" id="legendBox">
+        <div class="lg-head" id="legendHead" title="点击展开 / 收起图例">
+          <span class="lg-title">路线 / 番号色标 · LEGEND</span>
+          <span class="lg-chips"><i style="background:var(--c-xjq)"></i><i style="background:var(--c-central)"></i><i style="background:var(--c-fourth)"></i><i style="background:var(--c-second)"></i><i style="background:var(--c-25)"></i><i style="background:#1f66d0"></i></span>
+          <span class="caret">▼</span>
+        </div>
+        <div class="lg-body">
         <div class="lg" style="--lc:var(--c-central)"><i></i>红一方面军（中央红军）</div>
         <div class="lg" style="--lc:var(--c-fourth)"><i></i>红四方面军</div>
         <div class="lg" style="--lc:var(--c-second)"><i></i>红二方面军（红二、六军团）</div>
@@ -350,6 +367,7 @@
           蓝色实心箭头＝进攻 / 追击方向（箭尖所指即进攻方向）　灰蓝线＝封锁线 / 防线　◇ 菱形＝指挥部 / 要地；<br>
           国军图层随时间轴显隐——回放时仅显示当期部署，拖至最右显示全部；点击可查看番号与详情。<br>
           路线为史料节点连线示意，非精确行军轨迹</div>
+        </div>
       </div>
       <div class="map-note">
         依据人民网党史频道、中国共产党新闻网、中央党史和文献研究院等公开史料整理。
@@ -1662,6 +1680,12 @@ $('#btnReset').onclick=()=>{
 };
 $('#zIn').onclick=()=>{if(map)map.setZoom(Math.min(18,map.getZoom()+1));};
 $('#zOut').onclick=()=>{if(map)map.setZoom(Math.max(3,map.getZoom()-1));};
+/* 图例折叠：默认收起，记忆用户选择 */
+$('#legendHead').onclick=()=>{
+  const box=$('#legendBox'), open=box.classList.toggle('open');
+  try{ localStorage.setItem('lmLegendOpen', open?'1':'0'); }catch(e){}
+};
+try{ if(localStorage.getItem('lmLegendOpen')==='1') $('#legendBox').classList.add('open'); }catch(e){}
 
 /* SDK 的信息窗外壳是一个白底 + 内边距（25/10/12）的容器，会把深色卡片套出一圈白边，
    并把内部文字继承成居中。这里把外壳抹平，卡片外观完全交给 .iw 自己 */
