@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>红军长征全景交互地图 · 1934—1936</title>
+<style>
+  :root{
+    --bg:#100e0c; --panel:#1b1815; --panel2:#241f19; --panel3:#2c2620;
+    --line:#3d342b; --text:#f3ebde; --muted:#a99b88; --faint:#7d7161;
+    --gold:#d9a94b; --red:#e0492f;
+    --c-central:#ef4b32; --c-fourth:#e8a33a; --c-second:#37b8a9; --c-25:#9b7ae0; --c-support:#c9c0b2;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  button{font-family:inherit;cursor:pointer}
+  ::-webkit-scrollbar{width:7px;height:7px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:#4a4036;border-radius:4px}
+  ::-webkit-scrollbar-thumb:hover{background:#635747}
+
+  #app{height:100vh;display:grid;grid-template-columns:308px minmax(0,1fr) 372px;
+    grid-template-rows:74px minmax(0,1fr) 108px;overflow:hidden}
+  #app.no-left{grid-template-columns:0 minmax(0,1fr) 372px}
+  #app.no-right{grid-template-columns:308px minmax(0,1fr) 0}
+  #app.no-left.no-right{grid-template-columns:0 minmax(0,1fr) 0}
+  #app.no-left #sidebarL,#app.no-right #sidebarR{display:none}
+
+  /* ---------- header ---------- */
+  header{grid-column:1/-1;display:flex;align-items:center;gap:22px;padding:0 22px;
+    background:linear-gradient(90deg,#1a1512,#241c16 55%,#1a1512);
+    border-bottom:1px solid var(--line);z-index:20}
+  .brand{display:flex;align-items:center;gap:14px;min-width:0}
+  .emblem{width:38px;height:38px;flex:none;border:1px solid #8d3a2a;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;background:#2a1611;
+    box-shadow:0 0 0 3px rgba(224,73,47,.08)}
+  .emblem span{color:var(--gold);font-size:19px;line-height:1;font-family:serif}
+  .brand h1{font-size:19px;letter-spacing:2px;margin:0;font-weight:600;
+    font-family:"Songti SC","SimSun",serif;white-space:nowrap}
+  .brand p{margin:3px 0 0;font-size:11px;color:var(--muted);letter-spacing:1.2px;white-space:nowrap}
+  .hstats{display:flex;gap:8px;margin-left:auto;flex:none}
+  .stat{text-align:center;padding:5px 13px;border-left:1px solid var(--line)}
+  .stat b{display:block;font-size:17px;color:var(--gold);font-weight:600;line-height:1.15}
+  .stat i{font-style:normal;font-size:10px;color:var(--muted);letter-spacing:.5px}
+  .hbtn{background:transparent;border:1px solid var(--line);color:var(--muted);
+    padding:7px 12px;border-radius:5px;font-size:12px;white-space:nowrap}
+  .hbtn:hover{border-color:var(--gold);color:var(--gold)}
+  .hbtn.on{background:#3a2a1c;border-color:var(--gold);color:var(--gold)}
+
+  /* ---------- side panels ---------- */
+  .side{background:var(--panel);overflow-y:auto;overflow-x:hidden;min-width:0}
+  #sidebarL{border-right:1px solid var(--line)}
+  #sidebarR{border-left:1px solid var(--line)}
+  .sec{padding:16px 16px 18px;border-bottom:1px solid var(--line)}
+  .sec h2{margin:0 0 12px;font-size:11px;letter-spacing:2px;color:var(--gold);font-weight:600;
+    display:flex;align-items:center;gap:8px}
+  .sec h2:before{content:"";width:3px;height:12px;background:var(--gold);border-radius:2px}
+
+  .army-card{position:relative;border:1px solid var(--line);border-radius:7px;padding:11px 12px 11px 15px;
+    margin-bottom:9px;background:var(--panel2);cursor:pointer;transition:.18s;overflow:hidden}
+  .army-card:hover{background:var(--panel3);transform:translateX(2px)}
+  .army-card.active{border-color:var(--accent);background:var(--panel3)}
+  .army-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
+  .army-card.off{opacity:.4}
+  .ac-top{display:flex;align-items:center;gap:8px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none;
+    box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 20%,transparent)}
+  .ac-name{font-size:13px;font-weight:600;letter-spacing:.3px;color:var(--accent)}
+  .ac-en{font-size:10px;color:var(--faint);margin-left:auto;white-space:nowrap}
+  .ac-sub{font-size:11px;color:var(--muted);margin:6px 0 0;line-height:1.6}
+  .ac-meta{display:flex;gap:10px;margin-top:8px;font-size:10px;color:var(--faint);flex-wrap:wrap}
+  .ac-meta span{background:#151210;border:1px solid #342d26;padding:2px 6px;border-radius:3px}
+
+  .toggle-row{display:flex;align-items:center;gap:9px;padding:7px 0;font-size:12px;color:var(--muted);cursor:pointer}
+  .toggle-row input{appearance:none;width:30px;height:17px;border-radius:9px;background:#463c32;position:relative;
+    transition:.2s;cursor:pointer;flex:none;margin:0}
+  .toggle-row input:after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;
+    background:#8b7d6b;transition:.2s}
+  .toggle-row input:checked{background:var(--tc,#e0492f)}
+  .toggle-row input:checked:after{left:15px;background:#fff}
+  .toggle-row:hover{color:var(--text)}
+
+  .view-btn{display:block;width:100%;text-align:left;padding:8px 10px;margin-bottom:6px;font-size:12px;
+    background:var(--panel2);border:1px solid var(--line);color:var(--muted);border-radius:5px}
+  .view-btn:hover{border-color:var(--gold);color:var(--gold)}
+
+  /* ---------- map ---------- */
+  .map-wrap{position:relative;min-width:0;overflow:hidden;background:#e8e3d9}
+  #map{position:absolute;inset:0;width:100%;height:100%}
+  .map-wrap:after{content:"";position:absolute;inset:0;pointer-events:none;
+    box-shadow:inset 0 0 130px rgba(35,22,12,.34);z-index:2}
+  .map-top{position:absolute;top:14px;left:14px;right:14px;z-index:10;display:flex;gap:9px;
+    align-items:flex-start;pointer-events:none;flex-wrap:wrap}
+  .legend{pointer-events:auto;background:rgba(24,20,16,.92);border:1px solid var(--line);
+    border-radius:7px;padding:9px 12px;backdrop-filter:blur(8px);box-shadow:0 6px 20px rgba(0,0,0,.28)}
+  .legend b{font-size:10px;letter-spacing:1.5px;color:var(--gold);display:block;margin-bottom:7px}
+  .lg{display:flex;align-items:center;gap:7px;font-size:11px;color:#ddd2c2;margin:4px 0;white-space:nowrap}
+  .lg i{width:16px;height:3px;border-radius:2px;background:var(--lc)}
+  .legend .hint{font-size:10px;color:var(--faint);margin-top:8px;border-top:1px solid #3b322a;padding-top:7px;line-height:1.6}
+  .map-note{margin-left:auto;pointer-events:auto;background:rgba(24,20,16,.92);
+    border:1px solid var(--line);border-radius:7px;padding:8px 11px;font-size:10px;color:var(--muted);
+    max-width:250px;line-height:1.65;backdrop-filter:blur(8px)}
+  .map-bottom{position:absolute;bottom:14px;left:14px;z-index:10;display:flex;gap:7px}
+  .zbtn{background:rgba(24,20,16,.92);border:1px solid var(--line);color:#e6dccd;
+    width:30px;height:30px;border-radius:5px;font-size:16px;line-height:1}
+  .zbtn:hover{border-color:var(--gold);color:var(--gold)}
+  #mapFallback{display:none;position:absolute;inset:0;z-index:5;align-items:center;justify-content:center;
+    flex-direction:column;gap:10px;background:#20201d;color:var(--muted);font-size:13px;text-align:center;padding:30px}
+  #mapFallback.show{display:flex}
+  /* 信息窗：SDK 的容器带 white-space:nowrap / text-align:center，必须显式覆盖，
+     否则正文不换行会横向溢出窗口、且整段被居中 */
+  .iw{background:rgba(27,24,20,.97);border:1px solid #5c4a36;border-radius:8px;padding:12px 14px;
+    box-sizing:border-box;width:300px;max-width:min(300px,72vw);max-height:340px;overflow-y:auto;
+    white-space:normal;word-break:break-word;overflow-wrap:anywhere;text-align:left;
+    box-shadow:0 10px 30px rgba(0,0,0,.5);color:var(--text);font-size:12px}
+  .iw::-webkit-scrollbar{width:5px}
+  .iw::-webkit-scrollbar-thumb{background:#4a3f32;border-radius:3px}
+  .iw .iw-date{color:var(--gold);font-size:10px;letter-spacing:1px;line-height:1.6}
+  .iw .iw-title{font-size:14px;font-weight:600;margin:5px 0 6px;line-height:1.45}
+  .iw .iw-desc{color:#c9bda9;line-height:1.7;font-size:11px}
+  .iw .iw-unit{margin-top:8px;padding-top:7px;border-top:1px solid #44392d;color:var(--muted);font-size:10px;line-height:1.6}
+
+  /* ---------- right panel ---------- */
+  .tabs{display:flex;border-bottom:1px solid var(--line);background:var(--panel2);position:sticky;top:0;z-index:5}
+  .tab{flex:1;padding:12px 4px;font-size:12px;text-align:center;color:var(--muted);background:transparent;
+    border:0;border-bottom:2px solid transparent}
+  .tab:hover{color:var(--text)}
+  .tab.on{color:var(--gold);border-bottom-color:var(--gold);background:var(--panel)}
+  .tabpane{padding:16px;border-bottom:1px solid var(--line)}
+  .tabpane.hide{display:none}
+
+  .unit-head{display:flex;align-items:baseline;gap:9px;margin-bottom:4px}
+  .unit-head h3{margin:0;font-size:17px;font-family:"Songti SC","SimSun",serif;letter-spacing:1px}
+  .unit-head span{font-size:10px;color:var(--faint)}
+  .unit-lead{font-size:11px;color:var(--muted);line-height:1.8;margin:8px 0 14px}
+  .blk{margin:14px 0}
+  .blk h4{margin:0 0 8px;font-size:11px;letter-spacing:1.5px;color:var(--gold);font-weight:600}
+  .blk p{font-size:12px;line-height:1.85;color:#ded2c1;margin:0}
+  .kv{display:grid;grid-template-columns:66px 1fr;gap:6px 10px;font-size:11.5px;line-height:1.7}
+  .kv dt{color:var(--faint)}
+  .kv dd{margin:0;color:#e3d8c8}
+
+  .color-key{display:flex;align-items:center;gap:9px;background:var(--panel2);border:1px solid var(--line);
+    border-left:3px solid var(--uc);border-radius:5px;padding:9px 11px;margin:10px 0 4px;
+    font-size:10.5px;color:var(--muted);line-height:1.7}
+  .color-key b{color:var(--uc);font-size:11px}
+  .color-key .ck-line{width:24px;height:4px;border-radius:2px;background:var(--uc);flex:none;
+    box-shadow:0 0 9px var(--uc)}
+  .color-key .ck-hex{font-family:monospace;color:var(--faint);font-size:10px;margin-left:auto}
+
+  .tree{border-left:1px solid #4a3e31;margin-left:5px;padding-left:13px}
+  .node{margin-bottom:9px;position:relative}
+  .node:before{content:"";position:absolute;left:-14px;top:8px;width:8px;height:1px;background:var(--uc,#4a3e31)}
+  .node-t{font-size:12px;font-weight:600;color:var(--uc,#f0e4d2);display:flex;align-items:center;
+    gap:6px;flex-wrap:wrap}
+  .swatch{display:inline-block;vertical-align:1px;width:8px;height:8px;border-radius:2px;
+    background:var(--uc,#d9a94b);flex:none;box-shadow:0 0 0 2px rgba(255,255,255,.07)}
+  .node-t em{font-style:normal;font-weight:400;color:var(--gold);font-size:10px;margin-left:2px}
+  .node-d{font-size:10.5px;color:var(--muted);line-height:1.7;margin-top:3px}
+  .node-d b{color:#d7c9b5;font-weight:500}
+  .node-role{display:inline-block;margin-top:4px;font-size:10px;padding:2px 7px;border-radius:3px;
+    background:#241f1a;color:var(--uc,var(--gold));border:1px solid var(--uc,var(--gold))}
+
+  .change{list-style:none;margin:0;padding:0}
+  .change li{position:relative;padding:0 0 12px 17px;border-left:1px solid #4a3e31;font-size:11.5px;
+    line-height:1.7;color:#ded2c1}
+  .change li:last-child{border-left-color:transparent;padding-bottom:0}
+  .change li:before{content:"";position:absolute;left:-4px;top:5px;width:7px;height:7px;border-radius:50%;
+    background:var(--uc,var(--gold));box-shadow:0 0 0 3px rgba(217,169,75,.14)}
+  .change li b{color:var(--uc,var(--gold));font-weight:600;margin-right:6px;font-size:10.5px}
+
+  .evlist{list-style:none;margin:0;padding:0}
+  .ev{display:grid;grid-template-columns:52px 1fr;gap:9px;padding:9px 8px;border-bottom:1px solid #2e2821;
+    border-left:2px solid var(--ec,#4a3e31);cursor:pointer;border-radius:4px}
+  .ev:hover{background:var(--panel2)}
+  .ev.sel{background:#322619}
+  .ev-date{font-size:10px;color:var(--gold);line-height:1.5;font-variant-numeric:tabular-nums}
+  .ev-title{font-size:12px;font-weight:600;line-height:1.45}
+  .ev-place{font-size:10px;color:var(--faint);margin-top:3px}
+  .ev-tag{font-size:9px;padding:1px 5px;border-radius:3px;margin-left:6px;vertical-align:1px;
+    border:1px solid currentColor;opacity:.85}
+
+  .mini-card{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cc);
+    border-radius:5px;padding:10px 11px;margin-bottom:9px;cursor:pointer;transition:.16s}
+  .mini-card:hover{background:var(--panel3)}
+  .mini-card .mc-t{font-size:12px;font-weight:600;margin-bottom:7px}
+  .mini-card .kv{grid-template-columns:48px 1fr;gap:4px 9px;font-size:11px}
+  .mini-card .kv dd{line-height:1.65}
+  .route-list{max-height:330px;overflow-y:auto;border-left:1px solid #4a3e31;margin-left:4px;padding-right:3px}
+  .rnode{display:grid;grid-template-columns:42px 1fr;gap:2px 8px;padding:5px 0 5px 12px;
+    position:relative;border-bottom:1px solid #2a241e;cursor:default}
+  .rnode:hover{background:var(--panel2)}
+  .rnode:before{content:"";position:absolute;left:-4px;top:10px;width:7px;height:7px;border-radius:50%;
+    background:var(--ac,#d9a94b);box-shadow:0 0 0 2px #1b1815}
+  .rdate{color:var(--gold);font-size:10px;font-variant-numeric:tabular-nums;line-height:1.5}
+  .rname{color:#e3d8c8;font-size:11px;line-height:1.5}
+  .rev{grid-column:2;color:var(--faint);font-size:10px;line-height:1.5}
+
+  .src{font-size:11px;line-height:1.9;color:var(--muted)}
+  .src a{color:#c6a165;text-decoration:none;word-break:break-all}
+  .src a:hover{text-decoration:underline}
+  .src li{margin-bottom:9px}
+  .disclaimer{background:#2a2119;border:1px solid #4c3a26;border-radius:6px;padding:10px 11px;
+    font-size:10.5px;line-height:1.8;color:#c9b89e;margin-top:12px}
+
+  /* ---------- timeline ---------- */
+  footer{grid-column:1/-1;background:linear-gradient(180deg,#1b1714,#151210);
+    border-top:1px solid var(--line);padding:12px 22px 10px;z-index:15;display:flex;flex-direction:column;gap:8px}
+  .tl-head{display:flex;align-items:center;gap:14px}
+  .play{width:34px;height:34px;border-radius:50%;border:1px solid var(--gold);background:#3a2a1a;
+    color:var(--gold);font-size:13px;flex:none;display:flex;align-items:center;justify-content:center}
+  .play:hover{background:#503722}
+  .tl-date{font-size:19px;font-weight:600;color:var(--gold);letter-spacing:1.5px;
+    font-variant-numeric:tabular-nums;min-width:112px;font-family:"Songti SC","SimSun",serif}
+  .tl-phase{font-size:11px;color:var(--muted);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .speed{display:flex;gap:4px}
+  .speed button{background:var(--panel2);border:1px solid var(--line);color:var(--muted);
+    font-size:10px;padding:5px 8px;border-radius:4px}
+  .speed button.on{border-color:var(--gold);color:var(--gold)}
+  .tl-track{position:relative;height:36px;margin:0 4px}
+  .tl-base{position:absolute;left:0;right:0;top:16px;height:4px;border-radius:3px;background:#3b3229}
+  .tl-fill{position:absolute;left:0;top:16px;height:4px;border-radius:3px;
+    background:linear-gradient(90deg,#8a3524,var(--gold));width:100%}
+  .tl-ticks{position:absolute;left:0;right:0;top:0;height:36px}
+  .tick{position:absolute;top:8px;width:2px;height:16px;border-radius:1px;cursor:pointer;opacity:.8}
+  .tick:hover{opacity:1;height:22px;top:5px;width:3px}
+  .tick.major{top:5px;height:22px;width:2px;opacity:1}
+  .tl-range{position:absolute;left:0;right:0;top:9px;width:100%;margin:0;appearance:none;background:transparent;
+    height:22px;cursor:pointer;z-index:3}
+  .tl-range::-webkit-slider-thumb{appearance:none;width:15px;height:15px;border-radius:50%;background:#fff;
+    border:3px solid var(--red);box-shadow:0 0 0 3px rgba(224,73,47,.25);cursor:grab}
+  .tl-range::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid var(--red)}
+  .tl-labels{display:flex;justify-content:space-between;font-size:9.5px;color:var(--faint);
+    letter-spacing:.5px;margin:-2px 4px 0}
+  .tl-labels span{cursor:pointer}
+  .tl-labels span:hover{color:var(--gold)}
+
+  @media (max-width:1250px){
+    #app{grid-template-columns:270px minmax(0,1fr) 320px}
+    .brand p{display:none}.hstats .stat:nth-child(n+4){display:none}
+  }
+  @media (max-width:960px){
+    #app{grid-template-columns:0 minmax(0,1fr) 0;grid-template-rows:62px minmax(0,1fr) 100px}
+    #sidebarL,#sidebarR{display:none}
+    #app.show-left{grid-template-columns:280px minmax(0,1fr) 0}
+    #app.show-right{grid-template-columns:0 minmax(0,1fr) 330px}
+    #app.show-left #sidebarL,#app.show-right #sidebarR{display:block;position:absolute;top:62px;bottom:100px;
+      width:280px;z-index:30;box-shadow:0 0 30px rgba(0,0,0,.6)}
+    #app.show-right #sidebarR{right:0;width:330px}
+    .hstats{display:none}.map-note{display:none}
+  }
+  /* 国军部署列表 */
+  .krow{display:grid;grid-template-columns:50px 1fr;gap:2px 8px;padding:8px 7px;
+    border-bottom:1px solid #2e2821;cursor:pointer;border-radius:4px}
+  .krow:hover{background:var(--panel2)}
+  .krow .kd{font-size:10px;color:#8fa3b9;letter-spacing:.3px;padding-top:2px;font-variant-numeric:tabular-nums}
+  .krow .kt{font-size:11.5px;color:#e4d8c6;line-height:1.55;font-weight:600}
+  .krow .ks{font-size:10px;color:#93a3b6;margin-top:3px;line-height:1.5}
+</style>
+<!-- 腾讯地图 GL JS（合规代理模式：SDK 不带 key，密钥由 WorkBuddy 后端代理下发） -->
+<script type="text/javascript">
+  window._TMapSecurityConfig = {
+    serviceHost: 'http://127.0.0.1:__WB_HTTP_PORT__/_TMapService/_wbt/__WB_TMAP_SECRET__',
+  };
+</script>
+<script src="https://map.qq.com/api/gljs?v=1.exp"></script>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="brand">
+      <div class="emblem"><span>★</span></div>
+      <div>
+        <h1>红军长征全景交互地图</h1>
+        <p>1934—1936 · 四路红军 · 番号 / 路线 / 任务 / 重大事件</p>
+      </div>
+    </div>
+    <div class="hstats">
+      <div class="stat"><b>4</b><i>路主力红军</i></div>
+      <div class="stat"><b>14</b><i>途经省份</i></div>
+      <div class="stat"><b>2</b><i>年征程</i></div>
+      <div class="stat"><b>3</b><i>大会师</i></div>
+      <div class="stat"><b>1936.10</b><i>胜利结束</i></div>
+    </div>
+    <button class="hbtn" id="btnReset">全景重置</button>
+    <button class="hbtn on" id="btnLeft">部队</button>
+    <button class="hbtn on" id="btnRight">详情</button>
+  </header>
+
+  <!-- 左侧：部队导航 -->
+  <aside class="side" id="sidebarL">
+    <div class="sec">
+      <h2>参战部队 / 番号</h2>
+      <div id="armyCards"></div>
+    </div>
+    <div class="sec">
+      <h2>图层筛选</h2>
+      <div id="armyToggles"></div>
+      <div style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">
+        <label class="toggle-row"><input type="checkbox" id="tgEvents" checked><span>显示重大事件节点</span></label>
+        <label class="toggle-row"><input type="checkbox" id="tgLabels" checked><span>显示关键地名与部队番号</span></label>
+        <label class="toggle-row" style="--tc:#e0492f"><input type="checkbox" id="tgGlow" checked><span>选中部队路线 / 节点光晕</span></label>
+        <label class="toggle-row" style="--tc:#3f8fa8"><input type="checkbox" id="tgRivers" checked><span>主要江河（湘江 / 乌江 / 赤水 / 金沙江…）</span></label>
+        <label class="toggle-row" style="--tc:#1f66d0"><input type="checkbox" id="tgKmt" checked><span>国民党军部署 / 进攻方向</span></label>
+      </div>
+    </div>
+    <div class="sec">
+      <h2>视角预设</h2>
+      <button class="view-btn" data-view="all">◈ 全国全景（四路合观）</button>
+      <button class="view-btn" data-view="central">◈ 中央红军 · 二万五千里</button>
+      <button class="view-btn" data-view="fourth">◈ 红四方面军 · 川康甘</button>
+      <button class="view-btn" data-view="second">◈ 红二方面军 · 湘滇康</button>
+      <button class="view-btn" data-view="25">◈ 红二十五军 · 北上先锋</button>
+      <button class="view-btn" data-view="join">◈ 三大主力会师 · 陕甘宁</button>
+    </div>
+    <div class="sec">
+      <h2>说明</h2>
+      <p style="font-size:10.5px;line-height:1.85;color:var(--muted);margin:0">
+        点击部队卡片查看完整番号序列与任务；点击事件节点查看战役详情；
+        蓝色箭头为国民党军进攻 / 追击方向，灰蓝线为封锁线，点击同样可查看番号详情；
+        拖动底部时间轴可按时点回放各路行军进程与国军当期部署。
+      </p>
+    </div>
+  </aside>
+
+  <!-- 中央：地图 -->
+  <section class="map-wrap">
+    <div id="map"></div>
+    <div id="mapFallback">
+      <div style="font-size:26px;color:var(--gold)">◈</div>
+      <div>地图服务暂时未能加载。<br>左侧「部队」与右侧「详情」面板中的番号、路线、任务与事件资料仍可完整查阅。</div>
+    </div>
+    <div class="map-top">
+      <div class="legend">
+        <b>路线 / 番号色标 · LEGEND</b>
+        <div class="lg" style="--lc:var(--c-central)"><i></i>红一方面军（中央红军）</div>
+        <div class="lg" style="--lc:var(--c-fourth)"><i></i>红四方面军</div>
+        <div class="lg" style="--lc:var(--c-second)"><i></i>红二方面军（红二、六军团）</div>
+        <div class="lg" style="--lc:var(--c-25)"><i></i>红二十五军</div>
+        <div class="lg" style="--lc:#3f8fa8"><i></i>主要江河（长江水系 · 示意河道）</div>
+        <div class="lg" style="--lc:#1f66d0"><i></i>国民党军 · 进攻方向（蓝色箭头）</div>
+        <div class="lg" style="--lc:#7d92a8"><i></i>国民党军 · 封锁线与指挥部</div>
+        <div class="hint">同一颜色贯穿：地图路线、事件圆点、番号序列、番号演变、路线节点与时间轴刻度。<br>
+          ● 圆点＝重大事件　◆ 大点＝会师 / 出发 / 终点；选中部队的路线与节点显示同色光晕。<br>
+          淡蓝细线＝主要江河（湘江、乌江、赤水河、金沙江、大渡河、嘉陵江等，为示意河道，非精确水系）；<br>
+          蓝色实心箭头＝进攻 / 追击方向（箭尖所指即进攻方向）　灰蓝线＝封锁线 / 防线　◇ 菱形＝指挥部 / 要地；<br>
+          国军图层随时间轴显隐——回放时仅显示当期部署，拖至最右显示全部；点击可查看番号与详情。<br>
+          路线为史料节点连线示意，非精确行军轨迹</div>
+      </div>
+      <div class="map-note">
+        依据人民网党史频道、中国共产党新闻网、中央党史和文献研究院等公开史料整理。
+        节点坐标为今地名（县域）示意位置，采用 GCJ-02 坐标系。
+      </div>
+    </div>
+    <div class="map-bottom">
+      <button class="zbtn" id="zIn" title="放大">+</button>
+      <button class="zbtn" id="zOut" title="缩小">−</button>
+    </div>
+  </section>
+
+  <!-- 右侧：详情 -->
+  <aside class="side" id="sidebarR">
+    <div class="tabs">
+      <button class="tab on" data-tab="units">番号序列</button>
+      <button class="tab" data-tab="events">重大事件</button>
+      <button class="tab" data-tab="overview">全军总览</button>
+      <button class="tab" data-tab="kmt">国军部署</button>
+      <button class="tab" data-tab="sources">史料说明</button>
+    </div>
+    <div id="pane-units" class="tabpane"></div>
+    <div id="pane-events" class="tabpane hide"></div>
+    <div id="pane-overview" class="tabpane hide"></div>
+    <div id="pane-kmt" class="tabpane hide"></div>
+    <div id="pane-sources" class="tabpane hide"></div>
+  </aside>
+
+  <footer>
+    <div class="tl-head">
+      <button class="play" id="btnPlay" title="播放 / 暂停">▶</button>
+      <div class="tl-date" id="tlDate">1936.10</div>
+      <div class="tl-phase" id="tlPhase"></div>
+      <div class="speed" id="speed">
+        <button data-s="0.5">0.5×</button><button data-s="1" class="on">1×</button><button data-s="2">2×</button>
+      </div>
+      <div style="font-size:10px;color:var(--faint);white-space:nowrap">时间轴回放 · 1934.09 — 1936.11</div>
+    </div>
+    <div class="tl-track">
+      <div class="tl-base"></div><div class="tl-fill" id="tlFill"></div>
+      <div class="tl-ticks" id="tlTicks"></div>
+      <input type="range" class="tl-range" id="tlRange" min="0" max="100" value="100">
+    </div>
+    <div class="tl-labels">
+      <span data-jump="1934-09-01">1934.09 长征前夕</span>
+      <span data-jump="1934-10-10">1934.10 中央红军出发</span>
+      <span data-jump="1935-01-15">1935.01 遵义会议</span>
+      <span data-jump="1935-06-18">1935.06 懋功会师</span>
+      <span data-jump="1935-10-19">1935.10 吴起镇</span>
+      <span data-jump="1936-07-05">1936.07 红二方面军成立</span>
+      <span data-jump="1936-10-22">1936.10 三大主力会师</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+/* ============================================================
+   一、史料数据
+   ============================================================ */
+const ARMY = {
+  central: {
+    id:'central', name:'红一方面军（中央红军）', en:'中央红军 / 红一方面军', color:'#ef4b32',
+    sub:'战略转移主力。1934年1月红一方面军总部撤销并入中革军委，所部再称「中央红军」；出发时对外称「野战军」，最高统帅部称「野战司令部」。',
+    meta:['1934.10 出发','1935.10 结束','8.6万余人','11省 / 二万五千里'],
+    start:'1934年10月10日起，江西瑞金、于都等地集结南渡于都河',
+    end:'1935年10月19日抵达陕北吴起镇，中央红军主力长征结束',
+    province:'江西、福建、广东、湖南、广西、贵州、云南、四川、西康、甘肃、陕西（11省）',
+    mission:'在第五次反「围剿」失利后实行战略转移，突破国民党军四道封锁线；遵义会议后转向川黔滇边机动，摆脱围追堵截，北上创建川陕甘根据地；最终落脚陕甘，把中国革命大本营放在西北，并西征迎接红二、红四方面军北上。',
+    lead:'中革军委主席朱德，副主席周恩来、王稼祥；中国工农红军总司令朱德、总政治委员周恩来、总参谋长刘伯承、总政治部主任王稼祥。1935年11月恢复红一方面军番号后，司令员彭德怀、政治委员毛泽东。',
+    formation:[
+      {t:'红一军团', tag:'左路前锋', d:'军团长<b>林彪</b>、政委<b>聂荣臻</b>、参谋长左权、政治部主任朱瑞；辖<b>第1、第2、第15师</b>（第15师即少共国际师），约1.99万人。', role:'左路前锋'},
+      {t:'红三军团', tag:'右路前锋', d:'军团长<b>彭德怀</b>、政委<b>杨尚昆</b>、参谋长邓萍、政治部主任袁国平；辖<b>第4、第5、第6师</b>，约1.78万人。', role:'右路前锋'},
+      {t:'红五军团', tag:'总后卫', d:'军团长<b>董振堂</b>、政委<b>李卓然</b>、参谋长刘伯承、政治部主任曾日三；辖<b>第13、第34师</b>，约1.21万人。第34师为湘江战役「绝命后卫」。', role:'全军总后卫'},
+      {t:'红八军团', tag:'右翼拱卫', d:'军团长<b>周昆</b>、政委<b>黄甦</b>、参谋长张云逸、政治部主任罗荣桓，中央代表刘少奇；辖<b>第21、第23师</b>，约1.09万人。', role:'右翼拱卫，随红三军团跟进'},
+      {t:'红九军团', tag:'左翼拱卫', d:'军团长<b>罗炳辉</b>、政委<b>蔡树藩</b>、参谋长郭天民、政治部主任黄火青，中央代表凯丰；辖<b>第3、第22师</b>，约1.15万人。', role:'左翼拱卫，随红一军团跟进'},
+      {t:'第一野战纵队（代号「红星」）', tag:'军委纵队', d:'司令员兼政委<b>叶剑英</b>、参谋长钟伟剑、政治部主任王首道；由红军总部与干部团组成，下辖4个梯队。博古、李德、周恩来、朱德随行。', role:'中枢，居中行进'},
+      {t:'第二野战纵队（代号「红章」）', tag:'中央纵队', d:'司令员兼政委<b>李维汉（罗迈）</b>、副司令员兼副政委邓发、参谋长张宗逊、政治部主任邵式平；由中共中央、中央政府机关、后勤、卫生、总工会、青年团等组成，下辖4个梯队。毛泽东、张闻天、王稼祥随行。', role:'中枢，居中行进'},
+      {t:'留守苏区部队', tag:'坚持斗争', d:'中共苏区中央分局、中央军区、中央政府办事处（项英、瞿秋白、陈毅、陈潭秋、贺昌等），统一领导<b>红二十四师</b>及地方武装约1.6万余人。', role:'掩护主力转移、坚持南方游击'}
+    ],
+    changes:[
+      ['1934.10','出发序列：5个军团 + 2个野战纵队，共8.6万余人；行军部署为红一、九军团左路，红三、八军团右路，军委两纵队居中，红五军团总后卫。'],
+      ['1934.12','湘江战役后<b>黎平整编</b>：撤销红八军团番号，人员补入红三、红五军团；压缩机关与运输部队。中央红军由8.6万余人锐减至3万余人。'],
+      ['1935.02','<b>扎西整编</b>：遵义会议后去「搬家式」机关，全军缩为约17个团（含干部团），变「掩护队」为「战斗队」。'],
+      ['1935.06—07','懋功会师后恢复<b>红一方面军</b>番号；红一、红三、红五军团改称<b>红一、红三、红五军</b>，红九军团改称<b>红三十二军</b>。'],
+      ['1935.08','红一、红四方面军混编为左、右两路军：<b>右路军</b>＝红一、红三军 + 红四、红三十军（中共中央随行）；<b>左路军</b>＝红五、红三十二军 + 红九、红三十一、红三十三军（红军总司令部随行）。'],
+      ['1935.09.12','俄界会议后，中央纵队与红一、红三军改编为<b>中国工农红军陕甘支队</b>，约7000余人，先行北上。'],
+      ['1935.11','恢复红一方面军番号：红一、红三军合编为<b>红一军团</b>；由红二十五军与陕北红军组成的<b>红十五军团</b>编入序列，全军约1.4万人。'],
+      ['1936.05','组成<b>西方野战军</b>西征（5月至7月底），打击宁夏军阀、开辟纵横400余里新根据地，为迎接红二、红四方面军北上作准备。']
+    ],
+    view:{center:[31.0,106.8],zoom:5.6}
+  },
+  fourth: {
+    id:'fourth', name:'红四方面军', en:'川陕苏区主力', color:'#e8a33a',
+    sub:'1931年11月7日成立于湖北黄安（今红安）。长征自1935年3月强渡嘉陵江、撤离川陕苏区起，至1936年10月会宁会师，历时1年7个月。',
+    meta:['1935.03 出发','1936.10 结束','约8万余人','川康青甘 4省'],
+    start:'1935年3月下旬强渡嘉陵江西进，撤离川陕革命根据地',
+    end:'1936年10月9日，红军总部与红四方面军总指挥部到达甘肃会宁，同红一方面军会师',
+    province:'四川、西康、青海、甘肃（4省）',
+    mission:'强渡嘉陵江、歼敌1万余人并攻克9座县城，配合中央红军在川黔滇边作战；随后西进松潘、理番、茂县一带迎接中央红军；懋功会师后共同北上，创建川陕甘根据地；南下川康边受挫后整编北上，与红二方面军共同促成三大主力会师。',
+    lead:'总指挥<b>徐向前</b>、政治委员<b>陈昌浩</b>、副总指挥<b>王树声</b>、参谋长李特、政治部主任（1936年整编后）周纯全。',
+    formation:[
+      {t:'红四军', tag:'右路军', d:'军长<b>王宏坤</b>、政委周纯全（后王建安）；辖第10、11、12师。1935年8月编入右路军。', role:'右路军主力'},
+      {t:'红九军', tag:'左路军', d:'军长<b>何畏</b>、政委詹才芳（后孙玉清、陈海松）；辖第25、26、27师。', role:'左路军主力'},
+      {t:'红三十军', tag:'右路军', d:'军长<b>余天云</b>（后代军长程世才）、政委<b>李先念</b>；辖第88、89、90师。先头部队于达维迎接中央红军。', role:'右路军 / 迎接中央红军'},
+      {t:'红三十一军', tag:'左路军', d:'军长<b>王树声</b>、政委张广才（后詹才芳）；辖第91、92、93师。', role:'左路军主力'},
+      {t:'红三十三军', tag:'左路军', d:'军长<b>王维舟</b>、政委杨克明；由川东游击军改编，辖第98、99师。', role:'左路军'},
+      {t:'1936年4月整编', tag:'6军19师', d:'南下减员后重新整编为<b>第四、第五、第九、第三十、第三十一、第三十二军</b>共6个军19个师。其中<b>红五军</b>（军长董振堂）与<b>红三十二军</b>（军长罗炳辉）原属红一方面军，随左路军南下。另有妇女独立团、骑兵师、红军大学等。', role:'整编后辖6军19师'},
+      {t:'红三十二军划出', tag:'1936.07', d:'1936年7月，红三十二军划归新成立的<b>红二方面军</b>序列。', role:'转隶红二方面军'}
+    ],
+    changes:[
+      ['1935.03','发起<b>强渡嘉陵江战役</b>，控制东起嘉陵江、西至北川、南起梓潼、北到川甘边界广大地区，从此踏上长征征途。'],
+      ['1935.05','为迎接中央红军，西进四川松潘、理番、茂县等地区。'],
+      ['1935.06.12','红三十军李先念部在懋功东南<b>达维镇</b>与中央红军先头部队会师；6月18日两军主力在懋功地区会合，集结兵力达十多万人。'],
+      ['1935.06.26','<b>两河口会议</b>决定集中主力向北进攻，创建川陕甘革命根据地。'],
+      ['1935.08','混编左、右路军分路北上；右路军第4、第30军穿越草地并进行<b>包座战斗</b>；左路军第9、第31、第33军进至阿坝地区。'],
+      ['1935.09','张国焘拒绝北上、率部南下，转战川康边与康北地区（天全、芦山、百丈关一带），部队由8万余人减至4万余人。'],
+      ['1936.04','重新整编为6个军19个师；6月上旬取消另立的「中央」，决定北上。'],
+      ['1936.07','与红二方面军甘孜会师后共同北上，第三次穿越草地，经岷县向甘南进军。'],
+      ['1936.10.09','到达甘肃<b>会宁</b>与红一方面军会师，结束长征。']
+    ],
+    view:{center:[31.9,103.2],zoom:6.1}
+  },
+  second: {
+    id:'second', name:'红二方面军（红二、六军团）', en:'湘鄂川黔突围主力', color:'#37b8a9',
+    sub:'长征时以红二、红六军团名义行动；1936年7月5日在甘孜与红三十二军合编，正式成立中国工农红军第二方面军。',
+    meta:['1935.11 出发','1936.10 结束','约1.7万—2.1万人','8省 / 11个月'],
+    start:'1935年11月19日，湖南桑植县刘家坪、瑞塔铺突围誓师，开始长征',
+    end:'1936年10月22日，在将台堡（今属宁夏）与红一方面军会师，长征结束',
+    province:'湖南、贵州、云南、西康、四川、青海、甘肃、陕西（8省）',
+    mission:'突围前发动湘西攻势、创建湘鄂川黔根据地，成功牵制几十万追堵中央红军的国民党军，有力策应中央红军战略转移；长征中牵制与调动敌军，渡金沙江北上；甘孜会师后坚决维护全党全军团结、推动红四方面军共同北上，促成三大主力会师。',
+    lead:'红二方面军：总指挥<b>贺龙</b>、政治委员<b>任弼时</b>、副总指挥<b>萧克</b>、副政治委员<b>关向应</b>、参谋长李达。合编时全军约1.3万人。',
+    formation:[
+      {t:'红二军团', tag:'1934.10 恢复番号', d:'军团长<b>贺龙</b>、政委<b>任弼时</b>、副政委关向应、参谋长李达；由原红三军恢复番号，辖第4、第5、第6师。两军团共同行动时由红二军团指挥部统一指挥。', role:'主力 / 统一指挥'},
+      {t:'红六军团', tag:'先遣西征', d:'军团长<b>萧克</b>、政委<b>王震</b>、参谋长谭家述；1934年8月自湘赣苏区突围西征，比中央红军早两个月，实际起到侦察、探路的先遣队作用；1934年10月黔东木黄会师。', role:'先遣探路 / 主力'},
+      {t:'红十八师', tag:'留守掩护', d:'主力转移时留守湘鄂川黔根据地牵制敌军，1935年12月8日从龙山茨岩塘突围，经鄂西、川东、黔东，于<b>1936年1月9日</b>在贵州江口与主力会合，归还建制。', role:'掩护主力突围'},
+      {t:'红三十二军', tag:'1936.07 划入', d:'原红一方面军第九军团，军长<b>罗炳辉</b>；1936年7月由红四方面军划归红二方面军序列。', role:'合编入红二方面军'},
+      {t:'红二方面军（1936.07.05 成立）', tag:'中革军委电令', d:'红二军团 + 红六军团 + 红三十二军合编，全军约1.3万人；贺龙任总指挥、任弼时任政治委员。', role:'三大主力之一'}
+    ],
+    changes:[
+      ['1934.08','红六军团自湘赣苏区突围西征，任弼时、萧克、王震率领，跨越湘赣桂黔，行程5000余里，策应中央红军战略转移。'],
+      ['1934.10','红六军团与红三军在贵州印江<b>木黄会师</b>，红三军恢复<b>红二军团</b>番号；10月26日在四川酉阳南腰界召开会师大会。'],
+      ['1934.10—1935','两军团发动湘西攻势，创建湘鄂川黔根据地，取得忠堡大捷、板栗园战斗胜利，牵制大量敌军。'],
+      ['1935.11.19','因敌我兵力悬殊，主动突围远征；红十八师留守掩护主力。'],
+      ['1936.01—03','经石阡强渡乌江，创建黔（西）大（定）毕（节）根据地；随后开展<b>乌蒙山回旋战</b>，近1个月转战1000余里摆脱强敌围攻；3月28日进入盘县休整。'],
+      ['1936.04—05','接朱德、张国焘电报渡金沙江北上：经云南丽江<b>石鼓</b>渡江，翻越哈巴雪山等雪山，进入川康。'],
+      ['1936.06—07','6月3日红六军团甲洼、6月30日红二军团绒坝岔分别与红四方面军部队会合；7月2日两军团齐集甘孜举行会师大会；<b>7月5日</b>奉中革军委电令成立红二方面军。'],
+      ['1936.10.22','在甘肃静宁<b>将台堡</b>（今属宁夏）与红一方面军会师；三大主力会师标志长征胜利结束。']
+    ],
+    view:{center:[29.0,105.2],zoom:5.7}
+  },
+  '25': {
+    id:'25', name:'红二十五军', en:'北上抗日第二先遣队', color:'#9b7ae0',
+    sub:'1931年10月建于安徽六安，1932年11月在湖北黄安重建。孤军远征、无后方补给，是长征中最早到达陕北、且唯一人数不减反增的队伍。',
+    meta:['1934.11 出发','1935.09 结束','2980余人','豫鄂陕甘 4省'],
+    start:'1934年11月16日，河南罗山县何家冲出发，对外称「中国工农红军北上抗日第二先遣队」',
+    end:'1935年9月15日到达陕西延川永坪镇，次日与西北红军红二十六、二十七军会师，历时10个月',
+    province:'河南、湖北、陕西、甘肃（4省）',
+    mission:'按中共中央指示实行战略转移、策应中央红军；在鄂豫陕边界创建新的革命根据地；1935年7月从报纸获悉中央红军与红四方面军会师北上后，主动西征北上、切断西兰公路，配合红一、红四方面军北上行动，并与陕甘苏区红军会合。',
+    lead:'军长<b>程子华</b>、政治委员<b>吴焕先</b>、副军长<b>徐海东</b>、参谋长戴季英。中共鄂豫皖省委（后改鄂豫陕省委）随军行动。',
+    formation:[
+      {t:'红二十五军（1934.11 整编）', tag:'直辖4个团', d:'1934年11月11日花山寨会议决定战略转移并整编：<b>撤销师建制，直辖4个团</b>，共2980余人；对外番号「中国工农红军北上抗日第二先遣队」，发表抗日宣言。', role:'孤军战略转移'},
+      {t:'红二十八军', tag:'留守', d:'红二十五军主力转移后，留下的部分武装不久组成<b>红二十八军</b>，坚持鄂豫皖原地斗争。', role:'原地坚持游击'},
+      {t:'红七十四师', tag:'留守', d:'1935年7月主力西征北上时留下<b>红七十四师</b>，坚持鄂豫陕根据地斗争。', role:'原地坚持游击'},
+      {t:'红十五军团（1935.09 合编）', tag:'陕北会师', d:'红二十五军与陕甘苏区<b>红二十六军、红二十七军</b>合编为红十五军团：徐海东任军团长、程子华任政治委员、刘志丹任副军团长兼参谋长，全军团7000余人。', role:'巩固陕甘苏区'},
+      {t:'第75、78、81师', tag:'改编', d:'红二十五军改编为<b>第75师</b>，红二十六军改编为<b>第78师</b>，红二十七军改编为<b>第81师</b>。1935年11月红十五军团编入红一方面军序列。', role:'编入红一方面军'}
+    ],
+    changes:[
+      ['1934.11.11','鄂豫皖省委花山寨会议决定率红二十五军战略转移，向平汉铁路以西桐柏山区、伏牛山区转移。'],
+      ['1934.11.16','2980余人自何家冲出发；17日晚从信阳以南东双河至柳林间越过平汉铁路。'],
+      ['1934.11.26','<b>鏖战独树镇</b>（方城七里岗），突遭重兵合围，吴焕先挥刀率部白刃突击，为长征途中生死攸关一战。'],
+      ['1934.12.10','雒南（今洛南）<b>庾家河会议</b>决定创建鄂豫陕苏区，省委改称鄂豫陕省委；同日击退国民党军第六十师二十余次进攻。'],
+      ['1935.02—07','经蔡玉窑、文公岭、荆紫关、<b>袁家沟口（7月2日）</b>等战斗粉碎两次「围剿」，建立鄂豫陕苏区，部队发展到3700余人，是长征中唯一创建了根据地的队伍。'],
+      ['1935.07.15','长安<b>沣峪口紧急会议</b>决定主力西征北上，配合红一、红四方面军北上；留红七十四师坚持斗争。'],
+      ['1935.08','攻占两当（8月3日）、天水北关（8月9日），北渡渭河、进占秦安、切断西兰公路；17日攻占隆德、翻越六盘山；<b>8月21日</b>泾川四坡村战斗中政委吴焕先牺牲。'],
+      ['1935.09.15—18','抵达延川永坪镇，次日与红二十六、二十七军会师；合编为红十五军团，结束长征。全军3400余人。']
+    ],
+    view:{center:[34.2,109.4],zoom:6.1}
+  }
+};
+const ARMY_ORDER = ['central','fourth','second','25'];
+const ARMY_NAME = id => ARMY[id] ? ARMY[id].name : '';
+/* 地图上标注在路线起点的部队番号，颜色与该路线完全一致 */
+const ARMY_TAG = {central:'红一方面军',fourth:'红四方面军',second:'红二、六军团','25':'红二十五军'};
+
+/* 节点：n(地名, 纬度WGS84, 经度WGS84, 日期, 类型, 事件对象|null)
+   事件对象：{t:标题, c:类别, d:详述, u:涉及番号} */
+function n(name,lat,lng,date,kind,ev){return {name,lat,lng,date,kind,ev:ev||null};}
+function E(t,c,d,u){return {t,c,d,u};}
+
+const ROUTES = {
+central:[
+  n('瑞金',25.876,116.048,'1934-10-10','start',E('中央红军开始战略转移','出发','第五次反「围剿」失利，中共中央、中革军委率中央红军主力及中央、军委机关共8.6万余人，撤离中央革命根据地。出发时称「西征」，部队称「野战军」。','红一、三、五、八、九军团；第一、第二野战纵队')),
+  n('于都',25.951,115.424,'1934-10-17','major',E('南渡于都河','出发','10月中旬起，各部队在于都河以北集结完毕，17日起南渡于都河，正式踏上长征之路。','军委两纵队居中；红一、九军团左路，红三、八军团右路，红五军团总后卫')),
+  n('信丰',25.39,114.93,'1934-10-21','battle',E('突破第一道封锁线','战役','突破国民党军沿桃江布设的第一道封锁线。','红一、红三军团前锋')),
+  n('汝城',25.55,113.72,'1934-11-05','battle',E('突破第二道封锁线','战役','继续西进，突破湘粤边第二道封锁线。','红一、红三军团前锋')),
+  n('宜章',25.41,112.95,'1934-11-13','battle',null),
+  n('道县',25.53,111.60,'1934-11-25','pass',null),
+  n('湘江 · 界首',25.72,110.68,'1934-12-01','battle',E('血战湘江','战役','突破第四道封锁线时遭湘军、桂军夹击，付出极大牺牲。12月1日中共中央、中革军委和直属机关渡过湘江，中央红军由8.6万余人锐减到3万多人。红五军团第34师担任绝命后卫，几乎全军覆没。','红一、三、五、八、九军团；红五军团第34师；红八军团损失严重')),
+  n('老山界',26.05,110.64,'1934-12-05','pass',null),
+  n('通道',26.16,109.78,'1934-12-12','meeting',E('通道转兵','会议','湘江血战后，围绕进军方向展开激烈争论；中共中央在通道召开紧急会议，接受毛泽东主张，改向敌人力量薄弱的贵州进军。','中共中央、中革军委')),
+  n('黎平',26.23,109.15,'1934-12-18','meeting',E('黎平会议','会议','中共中央政治局在黎平举行会议，根据毛泽东建议通过决议，放弃到湘西北同红二、红六军团会合的计划，改向贵州北部进军。会后实施黎平整编，撤销红八军团番号。','中共中央政治局；撤销红八军团，人员补入红三、红五军团')),
+  n('猴场 · 瓮安',27.08,107.47,'1935-01-01','meeting',null),
+  n('遵义',27.73,106.93,'1935-01-07','major',E('攻克遵义 · 遵义会议','会议','1月7日攻克黔北重镇遵义；1月15日至17日中共中央召开政治局扩大会议，增选毛泽东为中央政治局常委，委托张闻天起草《中央关于反对敌人五次「围剿」的总结的决议》。会议开始确立以毛泽东同志为主要代表的马克思主义正确路线在中共中央的领导地位，在极其危急的情况下挽救了党、挽救了红军、挽救了中国革命。','中共中央政治局；红一、三、五、九军团')),
+  n('土城 · 赤水',28.28,106.04,'1935-01-29','battle',E('四渡赤水（一渡）','战役','1935年1月末至3月下旬，中央红军在川黔滇边四次渡过赤水河，穿插机动、调动和摆脱几十万国民党军。5月上旬巧渡金沙江，取得战略转移中具有决定意义的胜利。','红一、三、五、九军团（扎西整编后约17个团）')),
+  n('扎西 · 威信',27.85,105.05,'1935-02-09','meeting',E('扎西整编','整编','遵义会议后于云南扎西地区缩编：取消「搬家式」机关，全军由约30个团缩为约17个团（含干部团），红一军团撤第15师，红三军团撤师级建制直辖4个团，提高机动作战能力。','红一军团第1、2师；红三军团第10—13团；红五、红九军团各缩为3个团')),
+  n('娄山关',28.08,106.85,'1935-02-25','battle',E('再克娄山关 · 遵义大捷','战役','二渡赤水后回师黔北，攻克娄山关、再占遵义城，取得长征以来最大的一次胜利。','红一、红三军团')),
+  n('苟坝',27.62,106.55,'1935-03-10','meeting',null),
+  n('茅台 · 仁怀',27.86,106.38,'1935-03-16','battle',null),
+  n('贵阳 · 龙里',26.58,106.72,'1935-04-02','battle',E('南渡乌江 · 佯逼贵阳','战役','四渡赤水后南渡乌江，佯逼贵阳，乘敌调动之隙直插云南，跳出包围圈。','中央红军主力')),
+  n('曲靖 · 沾益',25.50,103.82,'1935-04-27','pass',null),
+  n('皎平渡',26.13,102.33,'1935-05-09','major',E('巧渡金沙江','战役','5月上旬于云南禄劝皎平渡渡过金沙江，彻底摆脱几十万国民党军队的围追堵截，粉碎蒋介石围歼红军于川黔滇边境的计划。','中央红军主力；干部团')),
+  n('会理',26.65,102.25,'1935-05-12','meeting',null),
+  n('冕宁 · 彝海',28.55,102.17,'1935-05-22','major',E('彝海结盟','事件','中央红军先遣队与彝族首领小叶丹歃血结盟，顺利通过彝区，为抢渡大渡河赢得时间。','红军先遣队（红一军团）')),
+  n('安顺场',29.23,102.34,'1935-05-25','battle',E('强渡大渡河','战役','5月下旬，红一团十七勇士在安顺场强渡大渡河，打开缺口。','红一军团第1师')),
+  n('泸定',29.91,102.23,'1935-05-29','battle',E('飞夺泸定桥','战役','红四团昼夜奔袭240里，22名突击队员攀铁索夺占泸定桥，中央红军主力得以渡过大渡河，避免重蹈石达开覆辙。','红一军团第2师第4团')),
+  n('夹金山 · 宝兴',30.37,102.81,'1935-06-12','major',E('翻越夹金山（第一座大雪山）','自然','翻越长征途中第一座人迹罕至的大雪山夹金山，进入川西北。','中央红军主力')),
+  n('达维',30.95,102.65,'1935-06-12','join',E('达维会师（懋功会师先声）','会师','中央红军先头部队到达懋功东南达维镇，与前来迎接的红四方面军第三十军李先念部会师。','中央红军先头部队；红四方面军红三十军')),
+  n('懋功（今小金）',30.99,102.36,'1935-06-18','join',E('懋功会师','会师','6月18日中共中央与中央红军主力到达懋功地区，两大主力红军会师，集结兵力达十多万人。会后中央红军恢复「红一方面军」番号。','中央红军（红一方面军）；红四方面军')),
+  n('两河口',31.33,102.68,'1935-06-26','meeting',E('两河口会议','会议','中共中央政治局会议决定集中主力向北进攻，创建川陕甘革命根据地，反对南下川康。','中共中央政治局；红一、红四方面军')),
+  n('毛儿盖',32.43,103.07,'1935-08-01','meeting',E('沙窝会议 · 毛儿盖会议 · 混编左右路军','会议','8月初红一、红四方面军混合编成左、右两路军北上。右路军＝红一、红三军 + 红四、红三十军（中共中央、前敌指挥部随行）；左路军＝红五、红三十二军 + 红九、红三十一、红三十三军（红军总司令部随行）。','右路军：红一、三、四、三十军；左路军：红五、九、三十一、三十二、三十三军')),
+  n('松潘草地',33.15,102.95,'1935-08-21','major',E('过草地','自然','8月21日右路军开始穿越松潘草地，走了六天六夜才走出草地。张国焘提出种种借口不愿北上，并要求右路军南下，中共中央多次致电令其北上未果。','右路军：红一、红三军 + 红四、红三十军')),
+  n('班佑 · 巴西',33.28,103.18,'1935-09-09','meeting',E('巴西会议 · 中央率部先行北上','会议','张国焘拒绝执行中央北上方针并领兵南下。为避免红军内部冲突，中共中央决定率右路军中红一、红三军和军委纵队单独先行北上。','红一军、红三军、军委纵队（中央纵队）')),
+  n('俄界 · 迭部',34.05,103.22,'1935-09-12','meeting',E('俄界会议 · 改编陕甘支队','整编','9月12日中共中央政治局在甘肃迭部俄界召开扩大会议，将北上红军改称「中国工农红军陕甘支队」，全支队约7000余人。','中国工农红军陕甘支队（原中央纵队 + 红一军、红三军）')),
+  n('腊子口',34.10,103.90,'1935-09-17','battle',E('激战腊子口','战役','9月17日陕甘支队先头部队一举突破川甘边界天险腊子口，打开进入甘肃的通道。','陕甘支队先头部队')),
+  n('哈达铺',34.25,104.15,'1935-09-18','major',E('占领哈达铺 · 确定落脚陕北','事件','9月18日占领哈达铺。毛泽东等从一张报纸上得知陕北有相当大的一块根据地和红军活动的情况，为把落脚点放在陕北提供了关键信息；部队在此短期休整。','陕甘支队')),
+  n('六盘山 · 隆德',35.60,106.10,'1935-10-07','pass',E('翻越六盘山','自然','陕甘支队北渡渭河、翻越六盘山，向陕甘苏区挺进。','陕甘支队')),
+  n('吴起镇',36.92,108.18,'1935-10-19','end',E('抵达吴起镇 · 中央红军长征结束','终点','1935年10月19日陕甘支队到达陕北吴起镇。中央红军主力历时1年、纵横11省、行程二万五千里的长征胜利结束，陕甘根据地成为落脚地。','陕甘支队（约7000余人）'))
+],
+fourth:[
+  n('旺苍',32.23,106.29,'1935-03-28','start',E('红四方面军开始长征','出发','1935年3月下旬，红四方面军根据中共中央和中革军委指示发起强渡嘉陵江战役，撤离川陕苏区，踏上长征征途。','红四方面军：第四、九、三十、三十一、三十三军')),
+  n('苍溪 · 嘉陵江',31.73,106.00,'1935-03-29','battle',E('强渡嘉陵江战役','战役','歼敌1万余人、攻克9座县城，控制东起嘉陵江、西到北川、南起梓潼、北到川甘边界广大地区，有力配合中央红军在川黔滇边的作战。','红四方面军主力5个军')),
+  n('剑门关 · 剑阁',32.29,105.47,'1935-04-02','battle',null),
+  n('江油 · 中坝',31.77,104.75,'1935-04-10','pass',null),
+  n('北川',31.83,104.46,'1935-04-20','pass',null),
+  n('茂县',31.68,103.85,'1935-05-15','major',E('西进迎接中央红军','行动','1935年5月，为迎接中央红军，红四方面军西进四川松潘、理番、茂县等地区。','红四方面军主力')),
+  n('理番（今理县）',31.43,103.17,'1935-05-25','pass',null),
+  n('达维',30.95,102.65,'1935-06-12','join',E('达维会师','会师','红三十军李先念部在懋功东南达维镇迎接中央红军先头部队，两大主力红军会师。','红四方面军红三十军；中央红军先头部队')),
+  n('懋功（今小金）',30.99,102.36,'1935-06-18','join',E('懋功会师 · 兵力十多万','会师','6月18日两军主力在懋功地区会合，集结兵力达十多万人，红军实力大大增强。中革军委随后将红一、三、五、九军团改称第1、3、5、32军。','红一、红四方面军全部')),
+  n('两河口',31.33,102.68,'1935-06-26','meeting',E('两河口会议','会议','决定集中主力向北进攻，创建川陕甘革命根据地。','中共中央政治局；红一、红四方面军')),
+  n('毛儿盖',32.43,103.07,'1935-08-01','meeting',E('混编左、右路军','整编','红四方面军第9、31、33军编入左路军（向阿坝），第4、30军编入右路军（向巴西、班佑）；从红四方面军抽调3个建制团3800人补充红一方面军。','左路军：红九、三十一、三十三军；右路军：红四、红三十军')),
+  n('阿坝',32.90,101.70,'1935-08-15','pass',E('左路军进至阿坝','行动','左路军先头部队北上至阿坝地区，随后张国焘拒绝继续北上。','左路军：红五、九、三十一、三十二、三十三军')),
+  n('松潘草地',33.30,102.90,'1935-08-21','major',E('右路军穿越草地','自然','红四方面军第4、30军与红一、红三军编成右路军，8月下旬穿越松潘草地。','右路军：红一、三军 + 红四、三十军')),
+  n('包座',33.55,103.42,'1935-08-29','battle',E('包座战斗','战役','右路军穿越草地后进行包座战斗，打开北上甘南通道。','右路军：红四军、红三十军')),
+  n('巴西',33.28,103.18,'1935-09-09','meeting',E('张国焘率部南下','转折','中共中央多次致电要求北上，张国焘置之不理，9月中旬率左路军及部分右路军部队南下，后又另立「中央」，分裂红军。','左路军：红五、九、三十一、三十二、三十三军（含原红一方面军红五、红三十二军）')),
+  n('再过草地 · 阿坝',32.90,101.70,'1935-09-18','pass',null),
+  n('卓克基 · 马尔康',31.90,102.27,'1935-10-05','pass',null),
+  n('绥靖 · 金川',31.47,102.06,'1935-10-15','pass',null),
+  n('天全',30.06,102.76,'1935-11-10','battle',null),
+  n('芦山',30.15,102.93,'1935-11-20','battle',null),
+  n('百丈关 · 名山',30.15,103.18,'1935-11-21','battle',E('百丈关受挫 · 南下失败','战役','南下转战川康边与康北地区，「打到成都吃大米」的企图未能实现，军事失败、经济破产、政治孤立，部队由8万余人减至4万余人。','红四方面军南下部队')),
+  n('炉霍',31.38,100.68,'1936-04-01','major',E('1936年4月整编为6军19师','整编','整编后辖第四、第五、第九、第三十、第三十一、第三十二军共6个军19个师；总指挥徐向前、政委陈昌浩、副总指挥王树声、参谋长李特。另有妇女独立团、骑兵师、红军大学等。','红四、五、九、三十、三十一、三十二军')),
+  n('甘孜',31.62,99.99,'1936-07-02','join',E('甘孜会师 · 红二方面军成立','会师','6月3日红六军团在理化以南甲洼与红三十二军一部会合，6月30日红二军团在绒坝岔与红三十军一部会合，7月2日两军团齐集甘孜举行会师大会。7月5日按中革军委电令，红二、六军团与红三十二军合编为红二方面军。','红四方面军；红二、六军团；红三十二军（划归红二方面军）')),
+  n('第三次过草地 · 阿坝',32.90,101.70,'1936-07-20','major',E('红二、四方面军共同北上','行动','7月上旬两军先后从甘孜、炉霍地区出发，第三次穿越草地，向甘南进军。由于准备较充分，减员比前两次少得多。','红四方面军3个纵队；红二方面军')),
+  n('若尔盖 · 包座',33.55,103.42,'1936-08-05','pass',null),
+  n('岷县',34.44,104.04,'1936-08-25','pass',null),
+  n('会宁',35.68,105.05,'1936-10-09','end',E('会宁会师 · 红四方面军长征结束','会师','10月2日红一方面军红十五军团直属骑兵团奔袭攻克会宁城；10月9日红军总部和红四方面军总指挥部到达会宁，与红一方面军部队会师。10月10日在文庙大成殿举行庆祝会师联欢大会。红四方面军结束历时约1年半、行程上万里的长征。','红四方面军约3.8万人；红一方面军；红十五军团骑兵团'))
+],
+second:[
+  n('桑植 · 刘家坪',29.40,110.16,'1935-11-19','start',E('红二、六军团开始长征','出发','因湘鄂川黔根据地已成为长江南岸最后一块红色根据地、敌我兵力悬殊，两军团决定突围远征至湘黔边。11月19日在刘家坪干田坝、瑞塔铺枫树塔举行突围誓师大会，当晚开始战略突围。','红二军团、红六军团；红十八师留守掩护')),
+  n('大庸（今张家界）',29.13,110.48,'1935-11-21','battle',null),
+  n('桃源 · 沅江',28.90,111.48,'1935-11-25','pass',null),
+  n('新化',27.74,111.30,'1935-12-05','pass',E('转战湘中','行动','突围后转战湘中，调动敌军、摆脱合围。','红二、红六军团')),
+  n('溆浦',27.91,110.60,'1935-12-10','pass',null),
+  n('芷江 · 便水',27.44,109.68,'1936-01-05','battle',null),
+  n('江口',27.70,108.84,'1936-01-09','join',E('红十八师归还建制','会师','留守湘鄂川黔根据地的红十八师于1935年12月8日从龙山茨岩塘杀出重围，经鄂西、川东、黔东浴血奋战，1936年1月9日到达贵州江口与主力会合，归还建制。','红十八师；红二、六军团主力')),
+  n('石阡',27.52,108.22,'1936-01-12','battle',E('强渡乌江 · 转兵黔西','战役','经贵州石阡强渡乌江，转向黔西地区。','红二、红六军团')),
+  n('瓮安 · 猴场',27.08,107.47,'1936-01-20','pass',null),
+  n('黔西',27.03,106.03,'1936-02-05','major',E('创建黔大毕根据地','根据地','转战黔西、大定、毕节地区，创建黔（西）大（定）毕（节）革命根据地。','红二、红六军团')),
+  n('大定（今大方）',27.14,105.61,'1936-02-08','pass',null),
+  n('毕节',27.28,105.30,'1936-02-10','pass',null),
+  n('赫章 · 乌蒙山',27.12,104.73,'1936-02-27','battle',E('乌蒙山回旋战','战役','因强敌围攻撤离黔大毕根据地，改向乌蒙山北麓前进，与敌展开机动灵活的回旋战，近1个月转战1000余里，最终成功摆脱强敌围攻。','红二、红六军团')),
+  n('威宁',26.86,104.28,'1936-03-10','pass',null),
+  n('宣威',26.22,104.10,'1936-03-20','pass',null),
+  n('盘县',25.71,104.46,'1936-03-28','meeting',E('盘县休整 · 决定渡江北上','会议','3月28日顺利出乌蒙山进入黔西南盘县地区休整。原本想在盘江地区建立新根据地，接朱德、张国焘来电后决定渡金沙江北上。','红二、红六军团')),
+  n('曲靖',25.50,103.82,'1936-04-10','pass',null),
+  n('富民 · 佯逼昆明',25.22,102.50,'1936-04-15','battle',null),
+  n('丽江 · 石鼓',26.88,99.95,'1936-04-25','major',E('石鼓渡金沙江','战役','1936年4月在云南丽江石鼓渡过金沙江，跳出敌军围堵，进入康藏高原。','红二、红六军团')),
+  n('中甸（今香格里拉）',27.83,99.70,'1936-05-01','major',E('翻越哈巴雪山等雪山','自然','渡江后翻越哈巴雪山等数座大雪山，迈入四川境内；高寒、缺氧、雪盲，重武器靠人力扛过雪山。','红二、红六军团（含红六军团第17师机枪连等）')),
+  n('德荣',28.72,99.29,'1936-05-15','pass',null),
+  n('巴塘',30.00,99.11,'1936-05-25','pass',null),
+  n('白玉',31.21,98.83,'1936-06-10','pass',null),
+  n('甘孜',31.62,99.99,'1936-07-02','join',E('甘孜会师 · 红二方面军成立','会师','6月3日红六军团在甲洼与红四方面军红三十二军一部会合，6月30日红二军团在绒坝岔与红三十军一部会合；7月1日两军团全部集结甘孜，2日举行会师庆祝大会。7月5日奉中革军委电令，红二、六军团与红三十二军合编组成红二方面军，贺龙任总指挥、任弼时任政治委员，全军约1.3万人。','红二军团、红六军团、红三十二军；红四方面军')),
+  n('炉霍',31.38,100.68,'1936-07-06','pass',E('推动红四方面军共同北上','行动','面对张国焘的分裂行径，任弼时、贺龙等坚决斗争，拥护党中央北上抗日的正确战略方针。在红二方面军推动和朱德、刘伯承、徐向前等力争下，两支方面军共同踏上北上征程。邓小平评价：「红二方面军推动红四方面军北上起了很大作用」。','红二方面军；红四方面军')),
+  n('阿坝 · 过草地',32.90,101.70,'1936-07-25','major',null),
+  n('若尔盖 · 包座',33.55,103.42,'1936-08-10','pass',null),
+  n('哈达铺',34.25,104.15,'1936-09-01','pass',null),
+  n('会宁地区',35.68,105.05,'1936-10-09','pass',null),
+  n('将台堡',35.65,105.85,'1936-10-22','end',E('将台堡会师 · 长征胜利结束','会师','1936年10月21日红二方面军进入宁夏西吉县，22日红二方面军指挥部到达静宁将台堡（今属宁夏回族自治区），同红一方面军会合。至此红二、红四方面军完成长征，三大主力会师标志着长征胜利结束。','红二方面军；红一方面军'))
+],
+'25':[
+  n('何家冲 · 罗山',31.87,114.35,'1934-11-16','start',E('红二十五军开始长征','出发','1934年11月11日鄂豫皖省委花山寨常委会议决定战略转移并整编：撤销师建制、直辖4个团，程子华任军长、吴焕先任政委、徐海东任副军长。11月16日2980余人自河南罗山县何家冲出发，对外称「中国工农红军北上抗日第二先遣队」，发表抗日宣言。','红二十五军（直辖4个团）；留下部分武装后组成红二十八军')),
+  n('信阳 · 柳林',32.00,114.08,'1934-11-17','pass',E('越过平汉铁路','行动','17日晚从信阳以南东双河至柳林间越过平汉铁路，向桐柏山区转移。','红二十五军')),
+  n('桐柏',32.37,113.40,'1934-11-22','pass',null),
+  n('枣阳',32.13,112.75,'1934-11-24','battle',null),
+  n('独树镇 · 方城',33.25,113.00,'1934-11-26','battle',E('鏖战独树镇','战役','突遭国民党军重兵合围，战士衣着单薄、手指冻得拉不开枪栓。政委吴焕先挥刀疾呼「共产党员跟我来！」率部白刃搏斗突出重围。此战与血战湘江、四渡赤水并列为长征经典战役，是红二十五军长征途中生死攸关一战。','红二十五军（直辖4个团）')),
+  n('伏牛山 · 栾川',33.78,111.60,'1934-12-03','pass',null),
+  n('卢氏',34.06,111.05,'1934-12-05','pass',null),
+  n('雒南（今洛南）',34.09,110.14,'1934-12-08','pass',null),
+  n('庾家河 · 丹凤',33.70,110.33,'1934-12-10','meeting',E('庾家河会议 · 创建鄂豫陕苏区','会议','中共鄂豫皖省委在雒南县庾家河召开常委会议，决定在鄂豫陕边界创建苏区，并将省委改为鄂豫陕省委；同日遭国民党军第六十师突袭，全员就地转入战斗，一日击退敌军二十余次进攻，程子华、徐海东负重伤。','中共鄂豫陕省委；红二十五军')),
+  n('葛牌镇 · 蓝田',33.95,109.55,'1935-02-05','battle',E('文公岭等战斗 · 粉碎第一次「围剿」','战役','1935年春进入陕南，攻占镇安、柞水、宁陕、佛坪、洛南、丹凤6座县城；2月5日文公岭歼敌5个营，4月9日葛牌镇歼陕军警三旅。','红二十五军')),
+  n('袁家沟口 · 山阳',33.53,109.90,'1935-07-02','battle',E('袁家沟口歼灭战','战役','全歼陕军警备第一旅、俘虏旅长唐嗣桐，彻底粉碎国民党军对鄂豫陕根据地的第二次「围剿」。红二十五军成为长征中唯一创建了根据地的队伍，部队发展到3700余人。','红二十五军')),
+  n('沣峪口 · 长安',33.85,108.85,'1935-07-15','meeting',E('沣峪口紧急会议 · 西征北上','会议','从敌方报纸获悉中央红军与红四方面军会师北上的消息后，中共鄂豫陕省委连夜召开紧急会议，决定率红二十五军主力西征北上，到陕甘苏区会合红二十六军，配合红一、红四方面军北上行动；留红七十四师坚持原地斗争。','红二十五军主力；红七十四师留守')),
+  n('两当',33.91,106.29,'1935-08-03','battle',E('攻占两当 · 进入甘肃','战役','8月3日进入甘肃攻占两当县城；9日占领天水北关，直捣敌军后方。','红二十五军')),
+  n('天水北关',34.58,105.72,'1935-08-09','battle',null),
+  n('秦安 · 北渡渭河',34.86,105.67,'1935-08-11','battle',E('北渡渭河 · 切断西兰公路','战役','11日北渡渭河，进占秦安、威逼静宁，切断西（安）兰（州）公路交通，有力配合了红一、红四方面军的北上行动。','红二十五军')),
+  n('静宁',35.52,105.73,'1935-08-14','pass',null),
+  n('隆德 · 六盘山',35.60,106.10,'1935-08-17','battle',E('攻占隆德 · 翻越六盘山','战役','17日攻占隆德，尔后翻越六盘山，向东挺进。','红二十五军')),
+  n('四坡村 · 泾川',35.33,107.36,'1935-08-21','battle',E('四坡村战斗 · 吴焕先牺牲','战役','在泾川县四坡村与拦截之国民党军1个团激战并将其全歼，军政治委员吴焕先在战斗中牺牲，年仅28岁。','红二十五军')),
+  n('安口窑 · 华亭',35.20,106.65,'1935-08-30','pass',null),
+  n('永坪 · 延川',36.90,110.15,'1935-09-15','end',E('永坪会师 · 红二十五军长征结束','会师','9月15日到达陕甘苏区延川县永坪镇，次日同西北红军第26、第27军会师，结束历时10个月、途经豫鄂陕甘4省的长征，全军3400余人，是最早到达陕北、且唯一人数不减反增的红军队伍。9月18日与红二十六、二十七军合编为红十五军团。','红二十五军 → 第75师；红二十六军 → 第78师；红二十七军 → 第81师；红十五军团'))
+]};
+
+/* 不落在路线节点上、但对理解全局必需的补充事件 */
+const EXTRA_EVENTS = [
+  {date:'1934-08-12',army:'second',place:'湖南桂东寨前圩',lat:26.09,lng:113.95,name:'红六军团西征（长征先遣）',ev:E('红六军团突围西征','出发','任弼时代表中央宣布红六军团正式成立：军团长萧克、政委王震、参谋长李达，下辖第17、18师。突围西征比中央红军早两个月，跨越湘赣桂黔行程5000余里，实际起到为中央红军战略转移侦察、探路的先遣队作用。','红六军团第17、18师')},
+  {date:'1934-10-24',army:'second',place:'贵州印江木黄',lat:27.99,lng:108.57,name:'木黄会师',ev:E('红二、六军团木黄会师','会师','红六军团主力到达黔东印江木黄，与贺龙、关向应率领的红三军会师；10月26日在四川酉阳南腰界召开庆祝大会。会后红三军奉中革军委电令恢复「红二军团」番号。','红三军 → 红二军团；红六军团')},
+  {date:'1935-09-18',army:'25',place:'陕西延川永坪',lat:36.90,lng:110.15,name:'红十五军团成立',ev:E('红十五军团成立','整编','红二十五军与陕甘苏区红二十六、红二十七军合编为中国工农红军第15军团，徐海东任军团长、程子华任政治委员、刘志丹任副军团长兼参谋长，全军团7000余人；随即展开反对国民党军对陕甘苏区第三次「围剿」的斗争。','第75师（原红二十五军）、第78师、第81师')},
+  {date:'1935-11-03',army:'central',place:'陕西甘泉',lat:36.27,lng:109.35,name:'甘泉会师 · 恢复红一方面军番号',ev:E('甘泉会师 · 恢复红一方面军番号','会师','陕甘支队到达甘泉地区同红十五军团胜利会师。会师后恢复红一方面军番号，红十五军团编入红一方面军序列，第一、第三军合编为红一军团，全军约1.4万人。','陕甘支队；红十五军团；红一军团')},
+  {date:'1935-11-20',army:'central',place:'陕西富县直罗镇',lat:35.98,lng:109.10,name:'直罗镇战役',ev:E('直罗镇战役','战役','11月下旬红一方面军在直罗镇地区歼灭国民党军第57军1个师又1个团，打破国民党军对陕甘苏区的第三次「围剿」，为中共中央把全国革命的大本营放在西北举行了「奠基礼」。','红一军团；红十五军团')},
+  {date:'1936-05-18',army:'central',place:'陕甘苏区西线（甘肃环县一带）',lat:36.57,lng:107.51,name:'西方野战军西征',ev:E('西方野战军西征','行动','中共中央决定组织西方野战军进行西征，给宁夏军阀马鸿逵、马鸿宾部以沉重打击。至7月底开辟纵横400余里的新根据地并与陕甘根据地连成一片，为迎接红二、红四方面军北上、实现三军大会师作准备。','红一方面军（西方野战军）')},
+  {date:'1936-10-02',army:'central',place:'甘肃会宁',lat:35.68,lng:105.05,name:'奔袭攻克会宁城',ev:E('红十五军团骑兵团攻克会宁','战役','为迎接红二、红四方面军北上，红一方面军第15军团直属骑兵团连夜奔袭，一举攻克会宁城，为三大主力会师准备好会合地点。','红一方面军第15军团直属骑兵团')}
+];
+
+/* 国民党军部署与进攻方向（灰蓝色系，与红军四色区分）
+   kind: arrow＝进攻/追击方向（带箭头）  line＝封锁线/防线（无箭头）  base＝指挥部/要地（菱形标记）
+   from/to＝该部署在时间轴上的生效窗口；时间轴拖至最右（全景）时显示全部 */
+const KMT_OPS = [
+  /* —— 1934 · 第五次「围剿」尾声与四道封锁线 —— */
+  {id:'np-push',lab:'国民党军·北路军',kind:'arrow',from:'1934-09-20',to:'1934-10-18',
+   pts:[[26.33,116.33],[25.98,116.02]],tag:'国民党军·北路军',
+   title:'压向瑞金 · 中央苏区门户洞开',
+   d:'第五次「围剿」后期，国民党军以北路军步步为营，连占广昌、建宁、石城、古龙冈，1934年10月上旬前锋逼近中央苏区首府瑞金，中央红军被迫实行战略转移。',
+   u:'北路军（含薛岳第六路军等部）'},
+  {id:'blk1',lab:'第一道封锁线·粤军',kind:'line',from:'1934-10-16',to:'1934-11-05',
+   pts:[[25.14,115.39],[25.39,114.93],[25.66,114.76],[25.86,115.98]],tag:'粤军·陈济棠部',
+   title:'第一道封锁线（安远—信丰—南康—赣县，沿桃江）',
+   d:'粤军沿桃江一线布防。因红军与陈济棠达成秘密借道协议，防务空虚；10月21日红三军团在信丰百石打响长征第一仗，25日前后全军渡过桃江，突破第一道封锁线。',
+   u:'粤军余汉谋第一军等部'},
+  {id:'blk2',lab:'第二道封锁线',kind:'line',from:'1934-10-28',to:'1934-11-10',
+   pts:[[25.54,113.68],[25.33,113.74],[25.09,113.75]],tag:'湘军·何键部 / 粤军',
+   title:'第二道封锁线（汝城—城口—仁化）',
+   d:'湘粤边防线。仁化城口是红军西进唯一通道，经激战被红军占领；11月5日红军以三路纵队从汝城、城口之间通过，8日全部通过汝城以南地域，进入湘南。',
+   u:'湘军、粤军各一部'},
+  {id:'blk3',lab:'第三道封锁线',kind:'line',from:'1934-11-08',to:'1934-11-16',
+   pts:[[25.79,113.02],[25.62,113.05],[25.42,113.36],[25.13,113.35]],tag:'湘军·何键部',
+   title:'第三道封锁线（郴县良田—宜章—乐昌，沿粤汉铁路）',
+   d:'何键部分散于衡阳以南粤汉铁路、湘桂公路沿线各要点，来不及向湘粤边境靠拢。11月13—15日红军从郴县、良田、宜章、乐昌之间全部通过第三道封锁线。',
+   u:'湘军、粤军各一部'},
+  {id:'blk4',lab:'第四道封锁线·湘江',kind:'line',from:'1934-11-22',to:'1934-12-03',
+   pts:[[25.96,111.07],[25.63,110.69],[25.49,111.16]],tag:'湘军 / 桂军·白崇禧、廖磊部',
+   title:'第四道封锁线（湘江：全州—兴安—灌阳）',
+   d:'蒋介石精心布置的决战防线：11月12日任何键为「追剿军」总司令、薛岳为前敌总指挥，指挥湘军与中央军16个师77个团，并令粤、桂军配合，五路大军近25万兵力前堵后追、四面合围。红军浴血五昼夜，12月1日渡过湘江，由8.6万余人锐减至3万余人。',
+   u:'湘军主力、桂军第15军等部、中央军追击部队'},
+  {id:'p-xj',lab:'湘军·何键',kind:'arrow',from:'1934-11-12',to:'1934-12-03',
+   pts:[[26.60,111.90],[25.98,111.10]],tag:'湘军·何键（追剿军总司令）',
+   title:'湘军沿湘江北上堵击',
+   d:'何键就任「追剿军」总司令后，以主力沿湘江布防，由北向南压迫，与桂军、中央军合围红军于湘江以东地区，湘军进攻兵力一度超过红军阻击兵力的10倍。',
+   u:'追剿军湘军各路（刘建绪等指挥）'},
+  {id:'p-gx',lab:'桂军·白崇禧',kind:'arrow',from:'1934-11-21',to:'1934-12-03',
+   pts:[[25.28,110.29],[25.45,111.05]],tag:'桂军·白崇禧、廖磊部',
+   title:'桂军让路复回师 · 新圩、光华铺侧击',
+   d:'桂军先南撤让出通道，11月27日后回师反扑，在灌阳新圩、兴安光华铺一线猛攻红军后卫，红五军团第34师、红三军团第18团被阻于湘江东岸，大部牺牲。',
+   u:'桂军第15军等主力'},
+  {id:'p-zy',lab:'中央军·薛岳',kind:'arrow',from:'1934-11-10',to:'1934-12-05',
+   pts:[[25.80,113.02],[25.51,111.62]],tag:'中央军·薛岳（前敌总指挥）',
+   title:'中央军沿湘桂公路侧击尾追',
+   d:'薛岳率中央军沿湘桂公路实施侧击，与红军战斗七天七夜，自东向西压向湘江，企图将红军包围消灭于湘桂边境。',
+   u:'中央军薛岳部（后编为吴奇伟、周浑元两纵队）'},
+  /* —— 1935 · 黔北川南机动 —— */
+  {id:'zj-guiyang',lab:'中央军·薛岳',kind:'arrow',from:'1934-12-25',to:'1935-01-15',
+   pts:[[27.95,109.65],[27.20,107.90],[26.65,106.63]],tag:'中央军·薛岳部',
+   title:'中央军8个师尾追入黔 · 进占贵阳',
+   d:'中央红军入黔后，薛岳率中央军8个师尾追入黔，1935年1月初进占贵阳及周围地区，薛岳任贵阳绥靖公署主任；黔军王家烈部在乌江、黔北节节抵抗，红军突破乌江攻占遵义。',
+   u:'吴奇伟纵队、周浑元纵队（各4个师）；黔军王家烈部5个师'},
+  {id:'cw-tucheng',lab:'川军·郭勋祺',kind:'arrow',from:'1935-01-26',to:'1935-01-30',
+   pts:[[28.87,105.44],[28.15,105.85]],tag:'川军·郭勋祺部',
+   title:'川军抢先入黔北 · 土城青杠坡堵击',
+   d:'川军以郭勋祺等部先于红军占领赤水、土城以东要地。1月28日红军在土城青杠坡与川军激战，当面之敌实为9个团万余人（远超侦察判断的4个团），形成对峙后红军随即一渡赤水。',
+   u:'川军郭勋祺部3个旅等（万余人）'},
+  {id:'cw-jiangfang',lab:'川军·刘湘（江防）',kind:'line',from:'1935-01-25',to:'1935-04-01',
+   pts:[[28.77,104.64],[28.87,105.44],[29.30,106.00],[29.56,106.55]],tag:'川军·刘湘部（江防）',
+   title:'川军沿长江布防',
+   d:'中央红军拟在宜宾、泸州之间北渡长江入川。刘湘所部以8个旅分路追截、4个旅沿长江两岸布防，红军遂放弃渡江计划，改向川滇边的扎西地区集中。',
+   u:'川军潘文华部12个旅'},
+  {id:'ck-cq',lab:'蒋介石·重庆',kind:'base',from:'1935-03-02',to:'1935-03-24',
+   pts:[[29.56,106.55]],tag:'蒋介石 · 重庆督剿',
+   title:'蒋介石飞抵重庆亲自指挥',
+   d:'3月2日蒋介石由南昌飞重庆督剿，令周浑元纵队和川军郭勋祺3个旅会攻遵义、湘军何键部3个师守备乌江沿岸，企图歼红军于乌江以西、巴黔大道地区。'},
+  {id:'wqw-zy',lab:'中央军·吴奇伟',kind:'arrow',from:'1935-02-27',to:'1935-03-02',
+   pts:[[26.65,106.63],[27.68,106.92]],tag:'中央军·吴奇伟纵队',
+   title:'吴奇伟纵队反扑遵义',
+   d:'红军二渡赤水、再占遵义后，吴奇伟率两个师孤军冒进反扑，被红军击溃，残部逃过乌江时砍断浮桥，千余人被俘。遵义战役歼灭和击溃敌两个师又8个团，是长征以来最大的一次胜利。',
+   u:'吴奇伟纵队第59、第93师'},
+  {id:'ck-gy',lab:'蒋介石·贵阳',kind:'base',from:'1935-03-24',to:'1935-05-10',
+   pts:[[26.65,106.63]],tag:'蒋介石 · 贵阳督战',
+   title:'蒋介石飞贵阳督战',
+   d:'3月24日蒋介石飞贵阳亲自督战。4月初红军兵临贵阳城下，蒋急调滇军「救驾」，数十万国民党军被反复调动、疲于奔命，红军乘虚西进云南。'},
+  {id:'zhw-lbc',lab:'中央军·周浑元',kind:'base',from:'1935-03-10',to:'1935-03-17',
+   pts:[[27.83,106.06]],tag:'中央军·周浑元纵队',
+   title:'周浑元纵队固守鲁班场',
+   d:'3月15日红军集中主力强攻鲁班场周浑元纵队碉堡阵地，激战一日未能攻克，随即三渡赤水河，再次调动国民党军。'},
+  {id:'sd-gy',lab:'滇军·孙渡',kind:'arrow',from:'1935-04-02',to:'1935-04-09',
+   pts:[[25.48,103.79],[26.65,106.63]],tag:'滇军·孙渡纵队',
+   title:'滇军星夜驰援贵阳',
+   d:'红军佯攻贵阳，蒋介石急调防守滇东的孙渡纵队兼程东进「救驾」。滇军东调后云南兵力空虚，红军乘虚西进，直逼昆明后又折向西北，5月初在皎平渡巧渡金沙江。',
+   u:'滇军孙渡纵队3个旅另1个团'},
+  {id:'xy-jsj',lab:'中央军·薛岳',kind:'arrow',from:'1935-05-03',to:'1935-05-12',
+   pts:[[25.20,102.70],[25.90,102.05]],tag:'中央军·薛岳部',
+   title:'追至金沙江边',
+   d:'红军5月初在皎平渡、洪门渡渡过金沙江。薛岳部追至江边时，红军已在江北休整，将追兵远远甩在金沙江南岸。'},
+  /* —— 1935 · 大渡河与川西北 —— */
+  {id:'ddh-line',lab:'川军·刘文辉（大渡河）',kind:'line',from:'1935-05-10',to:'1935-06-05',
+   pts:[[29.91,102.23],[29.50,102.30],[29.05,102.35]],tag:'川军·刘文辉第24军',
+   title:'大渡河防线（泸定—安顺场）',
+   d:'蒋介石部署「南追北堵」的大渡河会战，叫嚣让红军做「石达开第二」。刘文辉第24军沿河布防：第4旅袁国瑞部第38团守泸定桥、第11团守安顺场对岸。红军5月24日夜袭安顺场、25日十七勇士强渡，29日飞夺泸定桥，突破防线。',
+   u:'第24军第4旅（袁国瑞）等部'},
+  {id:'ys-zy',lab:'川军·杨森',kind:'arrow',from:'1935-05-15',to:'1935-05-30',
+   pts:[[30.00,103.04],[29.40,102.45]],tag:'川军·杨森第20军',
+   title:'杨森部向大渡河增援',
+   d:'蒋介石急调杨森第20军向大渡河增援（先头抵峨边以西金口河），并调邓锡侯第28军两个旅到天全、芦山、懋功堵截红军北上。',
+   u:'第20军（杨森）；第28军两个旅（邓锡侯部）'},
+  {id:'xy-ddh',lab:'中央军·薛岳',kind:'arrow',from:'1935-05-18',to:'1935-06-02',
+   pts:[[27.90,102.26],[29.00,102.40]],tag:'中央军·薛岳部',
+   title:'薛岳部兼程北追',
+   d:'薛岳部李韫珩第53师等渡金沙江后兼程追击，经西昌、冕宁直扑大渡河；红军夺桥后翻越夹金山，6月中旬与红四方面军懋功会师。',
+   u:'李韫珩第53师、周浑元纵队等'},
+  {id:'hsz-sp',lab:'中央军·胡宗南',kind:'arrow',from:'1935-05-25',to:'1935-08-31',
+   pts:[[33.40,104.93],[32.65,103.60]],tag:'中央军·胡宗南部',
+   title:'「西北追剿纵队」集结松潘、漳腊堵截',
+   d:'蒋介石将第49、第60、第61师及第2师补充旅、第1补充旅先后调至松潘、包座地区，连同第1师共4个师又2个旅，合编为「西北追剿纵队」，以胡宗南为总指挥，部署在松潘、漳腊方向阻击红军北上；8月底第49师在包座之战中几乎全军覆没。',
+   u:'第1师、第49师、第60师、第61师及两个补充旅'},
+  {id:'ldc-lzk',lab:'鲁大昌·新14师',kind:'base',from:'1935-09-08',to:'1935-09-18',
+   pts:[[34.07,103.90]],tag:'鲁大昌·新编第14师',
+   title:'鲁大昌部防守腊子口天险',
+   d:'腊子口是川甘古道咽喉，甘肃地方部队鲁大昌新编第14师凭险固守。9月17日红军正面强攻与攀崖迂回相结合，一举突破天险，打开北上甘陕的通道。',
+   u:'新编第14师（鲁大昌）'},
+  /* —— 陕北 · 东北军与西北剿总 —— */
+  {id:'xbz-xa',lab:'西北剿总·张学良',kind:'base',from:'1935-10-02',to:'1936-10-31',
+   pts:[[34.34,108.94]],tag:'西北剿总·张学良（副司令代行）',
+   title:'「西北剿匪总司令部」设于西安',
+   d:'10月2日国民党设西北剿总，蒋介石兼总司令、张学良任副司令代行职权，调东北军入陕甘「围剿」红军。东北军连败于劳山、榆林桥、直罗镇后损兵折将，渐与红军秘密停战、共商抗日。',
+   u:'东北军、第十七路军（杨虎城）及陕甘宁青各地方部队'},
+  {id:'db-wq',lab:'东北军骑兵',kind:'arrow',from:'1935-10-18',to:'1935-10-22',
+   pts:[[36.05,107.55],[36.90,108.15]],tag:'东北军骑兵 / 宁马·第35师骑兵团',
+   title:'骑兵尾追吴起镇 ·「切尾巴」之战',
+   d:'东北军白凤翔骑兵第6师、郭希鹏骑兵第3师与马鸿宾第35师马培清骑兵团尾追入陕。10月21日红军设伏将其歼灭1个团、击溃3个团，切掉长征途中最后的「尾巴」。',
+   u:'骑兵第3师（郭希鹏）、骑兵第6师（白凤翔）、第35师骑兵团（马培清）'},
+  {id:'db67-ls',lab:'东北军·第67军',kind:'arrow',from:'1935-09-25',to:'1935-10-26',
+   pts:[[36.59,109.49],[36.35,109.30]],tag:'东北军·第67军（王以哲）',
+   title:'第67军延安—洛川一线 · 劳山、榆林桥连败',
+   d:'东北军第67军驻洛川、延安一线。10月1日第110师由延安南援甘泉，在劳山被红十五军团设伏全歼，师长何立中毙命；10月25日第107师619团在榆林桥被歼，团长高福源被俘。',
+   u:'第110师（何立中）、第107师619团（高福源）'},
+  {id:'db57-zlz',lab:'东北军·第57军',kind:'arrow',from:'1935-11-05',to:'1935-11-24',
+   pts:[[35.82,108.58],[35.95,109.00]],tag:'东北军·第57军（董英斌）',
+   title:'第57军5个师东进 · 直罗镇战役',
+   d:'11月初东北军第57军5个师由甘肃合水东进，企图围歼红军于葫芦河、洛河地区。21—24日红军在直罗镇全歼第109师、击溃第106师1个团，师长牛元峰毙命，为把全国革命大本营放在西北举行「奠基礼」。',
+   u:'第57军5个师（含第109、第106师）'},
+  /* —— 红四方面军当面 —— */
+  {id:'jlj-line',lab:'川军·邓锡侯·田颂尧',kind:'line',from:'1935-03-01',to:'1935-04-15',
+   pts:[[32.44,105.84],[32.00,105.60],[31.50,105.90]],tag:'川军·邓锡侯、田颂尧部',
+   title:'嘉陵江西岸防线（广元—南部，约300公里）',
+   d:'川军52个团布防于广元至南部长约300公里的嘉陵江西岸，凭江险与剑门关扼守西进通路。3月28日夜红四方面军分三路强渡嘉陵江，4月2日全歼剑门关守敌3个团，江防土崩瓦解。',
+   u:'第28军（邓锡侯）、第29军（田颂尧），共52个团'},
+  {id:'liu-bzg',lab:'川军·刘湘（百丈关）',kind:'arrow',from:'1935-11-13',to:'1935-11-25',
+   pts:[[30.66,104.07],[30.15,103.25]],tag:'川军·刘湘部 / 中央军·薛岳部',
+   title:'80余团反扑百丈关',
+   d:'红四方面军南下受挫的关键一战：刘湘调集唐式遵、王缵绪、范绍增等主力连同当地国民党军共80多个团近16万人，薛岳中央军近4万人亦向川西集结。红军血战七昼夜毙伤敌1.5万余人、自身伤亡近万，撤出百丈关，由进攻转入防御。',
+   u:'川军主力80余团 + 中央军薛岳部近4万人'},
+  /* —— 红二十五军当面 —— */
+  {id:'pb-dsz',lab:'第40军·庞炳勋',kind:'base',from:'1934-11-26',to:'1934-11-29',
+   pts:[[33.28,113.02]],tag:'中央军·第40军（庞炳勋）',
+   title:'独树镇七里岗堵击',
+   d:'庞炳勋准确判断红军行军路线，提前将第115旅和骑兵团设伏于方城独树镇七里岗一线。雨雪交加中红二十五军仓促遭遇，激战九小时后乘夜突围，转进伏牛山区。',
+   u:'第40军第115旅及骑兵团'},
+  {id:'c60-yjh',lab:'第60师·陈沛',kind:'base',from:'1934-12-09',to:'1934-12-11',
+   pts:[[33.72,110.33]],tag:'中央军·第60师（陈沛）',
+   title:'第60师追至庾家河',
+   d:'第60师原属十九路军，战斗力强悍，从卢氏朱阳关封堵入陕通道后越省追击。12月10日在庾家河与红二十五军整日血战，程子华、徐海东均负重伤，红军黄昏将其击退。',
+   u:'第60师及两个骑兵团'},
+  {id:'sx-yjgk',lab:'陕军·警备1旅',kind:'base',from:'1935-07-01',to:'1935-07-04',
+   pts:[[33.43,109.75]],tag:'陕军·警备第1旅（唐嗣桐）',
+   title:'袁家沟口伏歼战',
+   d:'7月2日红二十五军在山阳袁家沟口设伏，全歼尾追的陕军警备第1旅，俘旅长唐嗣桐以下1400余人，粉碎了国民党军对鄂豫陕根据地的「围剿」。',
+   u:'陕军警备第1旅'},
+  /* —— 湘鄂川黔与红二方面军当面 —— */
+  {id:'xescq1',lab:'湘鄂军六路「围剿」',kind:'arrow',from:'1935-02-01',to:'1935-04-25',
+   pts:[[29.59,111.38],[29.40,110.17]],tag:'湘军·何键 / 鄂军·徐源泉',
+   title:'六个纵队「围剿」湘鄂川黔苏区',
+   d:'蒋介石调集11个师又4个旅约11万人编成六个纵队，以湘鄂两省军阀部队为主力分进合击，企图围歼红二、六军团于桑植、大庸、永顺间狭小地区。红军先后取得陈家河、桃子溪（全歼第58师）、忠堡、板栗园等胜利，8月粉碎「围剿」。',
+   u:'陈耀汉、郭汝栋、李觉、陶广、徐源泉、张振汉六个纵队'},
+  {id:'xescq2',lab:'孙连仲·樊崧甫·汤恩伯',kind:'arrow',from:'1935-09-10',to:'1935-11-19',
+   pts:[[29.63,111.68],[29.40,110.17]],tag:'孙连仲 / 中央军·樊崧甫、汤恩伯纵队',
+   title:'130个团再「围剿」· 堡垒推进',
+   d:'9月蒋介石再调130个团兵力，以湘军何键部、鄂军徐源泉部沿大庸、永顺、龙山和来凤、鹤峰一线筑碉固守，以孙连仲部和樊崧甫、汤恩伯纵队共9个师又1个旅自津市、澧县由东向西逐段筑垒推进，并严密经济封锁。红二、六军团11月19日由桑植突围长征。',
+   u:'第26路军（孙连仲）、樊崧甫纵队、汤恩伯纵队等9个师又1个旅'},
+  {id:'lj-bs',lab:'湘军·李觉',kind:'arrow',from:'1935-11-30',to:'1936-01-31',
+   pts:[[28.45,111.00],[27.85,110.20]],tag:'湘军·李觉纵队',
+   title:'李觉纵队尾追入湘黔',
+   d:'红二、六军团突围后经辰溪、溆浦转战湘中，1936年1月便水之战击退尾追的李觉纵队，随后转进黔西。',
+   u:'李觉纵队（湘军）'},
+  {id:'wm-east',lab:'中央军·万耀煌等',kind:'arrow',from:'1936-02-27',to:'1936-03-28',
+   pts:[[26.90,106.00],[27.35,104.70]],tag:'中央军·万耀煌、樊崧甫、郝梦龄纵队',
+   title:'乌蒙山围堵 · 东面追击',
+   d:'红二、六军团退出毕节进入乌蒙山区后，坐镇贵阳的顾祝同调动万耀煌、樊崧甫、郝梦龄3个纵队从东面追击，红军以则河回马枪、哲庄坝伏击战等与之周旋，千里回旋近一个月。',
+   u:'万耀煌（第13师等）、樊崧甫、郝梦龄纵队'},
+  {id:'wm-south',lab:'李觉·郭汝栋',kind:'arrow',from:'1936-03-01',to:'1936-03-25',
+   pts:[[26.20,104.90],[26.70,105.50]],tag:'湘军·李觉、郭汝栋纵队',
+   title:'南面堵截',
+   d:'李觉、郭汝栋两纵队封锁红军南下安顺道路，滇军孙渡纵队防于昭通、威宁，川军十几个团沿川南江防。红军最终从郭、樊两纵队接合部夜间秘密突围，跳出合围圈。',
+   u:'李觉、郭汝栋纵队；滇军孙渡纵队；川军沿江部队'},
+  {id:'gz-gy',lab:'顾祝同·贵阳',kind:'base',from:'1936-02-01',to:'1936-04-15',
+   pts:[[26.65,106.63]],tag:'顾祝同 · 坐镇贵阳',
+   title:'贵阳行营督剿红二、六军团',
+   d:'1936年初，顾祝同坐镇贵阳统一指挥对红二、六军团的围堵，调集重兵十余万合围乌蒙山区，被红军回旋作战拖得疲于奔命。'},
+  /* —— 1936 · 陕甘与三军会师 —— */
+  {id:'jsj-east',lab:'晋绥军·阎锡山',kind:'arrow',from:'1936-02-25',to:'1936-05-05',
+   pts:[[37.50,112.30],[36.90,111.00]],tag:'晋绥军·阎锡山 / 中央军10个师',
+   title:'拦击红军东征',
+   d:'红军以「中国人民红军抗日先锋军」名义东渡黄河后，阎锡山集中机动部队阻拦并急电求援；3月起蒋介石任陈诚为山西「剿共」军总司令，调10个师入晋并令河西国民党军配合，企图封锁黄河围歼红军。红军转战50余县、歼敌约1.3万人后，5月5日回师河西，发出《停战议和一致抗日通电》。',
+   u:'晋绥军（孙楚等部）；中央军10个师（陈诚指挥）'},
+  {id:'nm-xz',lab:'宁马·马鸿逵',kind:'arrow',from:'1936-05-19',to:'1936-07-27',
+   pts:[[38.47,106.27],[36.95,106.20]],tag:'宁马·马鸿逵、马鸿宾部',
+   title:'防堵红军西征',
+   d:'西方野战军西征后，马鸿逵、马鸿宾部遭沉重打击，红军解放环县、定边、盐池、豫旺等地，俘敌2000余人，开辟纵横200公里新根据地，为迎接红二、红四方面军北上作准备。',
+   u:'马鸿逵、马鸿宾部'},
+  {id:'hsz-jh',lab:'中央军·胡宗南',kind:'arrow',from:'1936-09-01',to:'1936-10-22',
+   pts:[[34.58,105.72],[35.52,105.70]],tag:'中央军·胡宗南第1军等3个军',
+   title:'抢占西兰大道 · 阻隔三军会师',
+   d:'9月初蒋介石调3个军兵力企图抢占静宁、会宁、定西段西兰大道，隔断红军三大主力会合通路。红十五军团骑兵团先敌奔袭占领会宁城；10月9日、22日三大主力先后会师，国民党围追堵截阴谋彻底破产。',
+   u:'第1军（胡宗南）、第37军（毛炳文）、第3军（王均）'}
+];
+
+/* 主要江河（长江水系为主）：长征诸役的天然地理坐标。
+   pts 为按今地名取点的示意河道（WGS84），lab 为标签落点 */
+const RIVERS = [
+  {id:'yudu', name:'于都河', lab:[25.79,115.10],
+   pts:[[26.05,115.62],[25.95,115.42],[25.88,115.20],[25.83,114.93]]},
+  {id:'xiang', name:'湘江', lab:[26.58,112.12],
+   pts:[[25.61,110.67],[25.93,111.07],[26.22,111.62],[26.89,112.57],[27.83,113.10],
+        [27.87,112.95],[28.23,112.94],[28.68,112.88]]},
+  {id:'wu', name:'乌江', lab:[27.55,108.02],
+   pts:[[26.87,104.28],[26.90,105.60],[26.90,106.20],[27.10,106.75],[27.22,107.47],
+        [27.94,108.25],[29.29,108.17],[29.70,107.39]]},
+  {id:'chishui', name:'赤水河', lab:[27.40,105.00],
+   pts:[[27.44,104.87],[27.30,105.29],[27.62,105.85],[27.85,106.37],[28.25,106.00],
+        [28.59,105.70],[28.81,105.83]]},
+  {id:'jinsha', name:'金沙江', lab:[26.42,101.05],
+   pts:[[26.87,99.95],[26.68,100.75],[26.58,101.72],[26.35,102.29],[26.91,102.93],
+        [28.63,104.41],[28.77,104.63]]},
+  {id:'dadu', name:'大渡河', lab:[29.18,103.06],
+   pts:[[29.91,102.23],[29.28,102.30],[29.35,102.65],[29.23,103.26],[29.58,103.77]]},
+  {id:'jialing', name:'嘉陵江', lab:[31.12,106.02],
+   pts:[[32.44,105.84],[31.85,105.90],[31.58,105.97],[30.79,106.08],[30.35,106.29],
+        [30.00,106.27],[29.56,106.55]]},
+  {id:'changjiang', name:'长江', lab:[29.22,106.42],
+   pts:[[28.77,104.63],[28.87,105.44],[28.81,105.83],[29.29,106.26],[29.56,106.55],
+        [29.70,107.39],[30.81,108.41]]},
+  {id:'huanghe', name:'黄河', lab:[38.72,106.72],
+   pts:[[36.06,103.83],[37.51,105.19],[38.47,106.27],[40.28,111.15],[39.02,111.13],
+        [37.45,110.74],[35.48,110.44]]}
+];
+
+/* ============================================================
+   二、工具函数
+   ============================================================ */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const DAY0 = Date.UTC(1934,8,1), DAY1 = Date.UTC(1936,9,31);
+const TOTAL_DAYS = Math.round((DAY1-DAY0)/86400000);
+const toDay = d => { const p=d.split('-'); return Math.round((Date.UTC(+p[0],+p[1]-1,+p[2])-DAY0)/86400000); };
+const dayToDate = k => { const d=new Date(DAY0+k*86400000); return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0'); };
+const fmtDate = d => { const p=d.split('-'); return p[0]+'.'+p[1]+'.'+p[2]; };
+const catColor = c => ({'会师':'#d9a94b','出发':'#e0492f','终点':'#d9a94b','战役':'#ef7a52','会议':'#7fb3d5','整编':'#b0a0e0','自然':'#8fc9a0','根据地':'#8fc9a0'}[c]||'#c9b89e');
+
+/* WGS84 -> GCJ-02（火星坐标），用于腾讯地图 */
+const PI=Math.PI, AX=6378245.0, EE=0.00669342162296594323;
+function outOfChina(lat,lng){return !(lng>73.66&&lng<135.05&&lat>3.86&&lat<53.55);}
+function tLat(x,y){let r=-100+2*x+3*y+0.2*y*y+0.1*x*y+0.2*Math.sqrt(Math.abs(x));
+  r+=(20*Math.sin(6*x*PI)+20*Math.sin(2*x*PI))*2/3;r+=(20*Math.sin(y*PI)+40*Math.sin(y/3*PI))*2/3;
+  r+=(160*Math.sin(y/12*PI)+320*Math.sin(y*PI/30))*2/3;return r;}
+function tLng(x,y){let r=300+x+2*y+0.1*x*x+0.1*x*y+0.1*Math.sqrt(Math.abs(x));
+  r+=(20*Math.sin(6*x*PI)+20*Math.sin(2*x*PI))*2/3;r+=(20*Math.sin(x*PI)+40*Math.sin(x/3*PI))*2/3;
+  r+=(150*Math.sin(x/12*PI)+300*Math.sin(x/30*PI))*2/3;return r;}
+function gcj(lat,lng){
+  if(outOfChina(lat,lng)) return [lat,lng];
+  let dlat=tLat(lng-105,lat-35),dlng=tLng(lng-105,lat-35);
+  const rad=lat/180*PI, m=Math.sin(rad), magic=1-EE*m*m, sq=Math.sqrt(magic);
+  dlat=(dlat*180)/((AX*(1-EE))/(magic*sq)*PI);
+  dlng=(dlng*180)/(AX/sq*Math.cos(rad)*PI);
+  return [lat+dlat,lng+dlng];
+}
+
+/* 汇总所有事件（路线节点 + 补充事件） */
+const ALL_EVENTS=[];
+ARMY_ORDER.forEach(aid=>ROUTES[aid].forEach((p,i)=>{
+  p.g=gcj(p.lat,p.lng); p.army=aid;
+  if(p.ev) ALL_EVENTS.push({id:'r-'+aid+'-'+i,date:p.date,army:aid,place:p.name,name:p.ev.t,ev:p.ev,lat:p.g[0],lng:p.g[1],kind:p.kind});
+}));
+EXTRA_EVENTS.forEach((e,i)=>{
+  const g=gcj(e.lat,e.lng);
+  ALL_EVENTS.push(Object.assign({},e,{id:'x-'+i,kind:'extra',lat:g[0],lng:g[1]}));
+});
+ALL_EVENTS.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+const EV_BY_ID = Object.fromEntries(ALL_EVENTS.map(e=>[e.id,e]));
+/* 国军部署：坐标转 GCJ-02，并预生成点击索引 */
+KMT_OPS.forEach(o=>{ o.g=o.pts.map(p=>gcj(p[0],p[1])); });
+const KMT_BY_ID = Object.fromEntries(KMT_OPS.map(o=>['k-'+o.id,o]));
+const KMT_COLOR = '#7d92a8';
+const KMT_TEXT = '#5d7286';
+/* 进攻方向：实心蓝色箭头（与封锁线的灰蓝区分开） */
+const KMT_ARROW = '#1f66d0';
+const KMT_ARROW_EDGE = 'rgba(8,24,52,0.80)';
+/* 信息窗是深色卡片，国军文字用浅蓝才看得清（#5d7286 只适合浅底图例） */
+const KMT_IW_TEXT = '#9dc3ef';
+const KMT_IW_TITLE = '#cfe2fb';
+/* 江河：比国军箭头更淡更细的一层，作为地理底衬 */
+const RIVER_COLOR = '#2f86a6';
+const RIVER_TEXT = '#1d6b84';
+RIVERS.forEach(r=>{ r.g=r.pts.map(p=>gcj(p[0],p[1])); r.gl=gcj(r.lab[0],r.lab[1]); });
+
+/* 状态 */
+const state={visible:Object.fromEntries(ARMY_ORDER.map(a=>[a,true])),selected:null,
+  event:null,day:TOTAL_DAYS,playing:false,speed:1,showEvents:true,showLabels:true,glow:true,showKmt:true,showRivers:true,tab:'units'};
+/* 按「显示状态」分图层：每层样式在创建时固定，只增删几何体。
+   这样不依赖 SDK 的样式缓存行为（实测同 id 改 styleId 不会重绘）。 */
+let map=null,labelLayer=null,infoWin=null,timer=null;
+const lineLayers={glow:null,dim:null,on:null,sel:null};
+const dotLayers={glow:null,on:null};
+const kmtLayers={line:null,arrow:null,mark:null};
+let riverLayer=null;
+let riverLabelLayer=null;
+function bindDotClick(layer){
+  if(!layer) return;
+  layer.on('click',e=>{ if(e&&e.geometry) focusEvent(e.geometry.id,false); });
+}
+/* 选中部队采用静态光晕强调（无定时器、无闪烁） */
+function updateGlow(){ syncLayers(); }
+/* 箭头多边形是「按当前缩放级别的像素尺寸」算出来的，缩放后需重建一次；
+   用 lastZoom 早退避免 idle 之类的重复事件引起重绘风暴 */
+let lastZoom=-1, zoomTimer=null;
+function onZoomChanged(){
+  if(!map) return;
+  if(Math.abs(map.getZoom()-lastZoom)<0.001) return;
+  if(zoomTimer) clearTimeout(zoomTimer);
+  zoomTimer=setTimeout(()=>{
+    zoomTimer=null;
+    if(!map) return;
+    lastZoom=map.getZoom();
+    syncLayers();
+  },160);
+}
+
+/* ============================================================
+   三、左侧面板
+   ============================================================ */
+function renderLeft(){
+  $('#armyCards').innerHTML=ARMY_ORDER.map(id=>{
+    const a=ARMY[id];
+    return `<div class="army-card ${state.selected===id?'active':''} ${state.visible[id]?'':'off'}"
+      data-army="${id}" style="--accent:${a.color}">
+      <div class="ac-top"><span class="dot"></span><span class="ac-name">${esc(a.name)}</span></div>
+      <div class="ac-sub">${esc(a.sub)}</div>
+      <div class="ac-meta">${a.meta.map(m=>`<span>${esc(m)}</span>`).join('')}</div>
+    </div>`;
+  }).join('');
+  $$('.army-card').forEach(el=>el.onclick=()=>{
+    const id=el.dataset.army;
+    state.selected = state.selected===id?null:id;
+    if(state.selected && !state.visible[state.selected]) state.visible[state.selected]=true;
+    renderLeft(); renderUnits(); renderEvents(); updateGlow();
+    if(state.selected) flyTo(ARMY[state.selected].view,true);
+  });
+
+  $('#armyToggles').innerHTML=ARMY_ORDER.map(id=>{
+    const a=ARMY[id];
+    return `<label class="toggle-row" style="--tc:${a.color}">
+      <input type="checkbox" data-vis="${id}" ${state.visible[id]?'checked':''}>
+      <span style="color:${a.color}">━</span><span>${esc(a.name)}</span></label>`;
+  }).join('');
+  $$('[data-vis]').forEach(el=>el.onchange=()=>{
+    state.visible[el.dataset.vis]=el.checked; renderLeft(); updateGlow();
+  });
+}
+$('#tgEvents').onchange=e=>{state.showEvents=e.target.checked;syncLayers();};
+$('#tgLabels').onchange=e=>{state.showLabels=e.target.checked;syncLayers();};
+$('#tgGlow').onchange=e=>{state.glow=e.target.checked;updateGlow();};
+$('#tgKmt').onchange=e=>{state.showKmt=e.target.checked;syncLayers();};
+$('#tgRivers').onchange=e=>{state.showRivers=e.target.checked;syncLayers();};
+
+/* ============================================================
+   四、右侧面板
+   ============================================================ */
+function setTab(t){
+  state.tab=t;
+  $$('.tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  ['units','events','overview','kmt','sources'].forEach(k=>$('#pane-'+k).classList.toggle('hide',k!==t));
+}
+$$('.tab').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+/* 国军部署清单：按年份分组，点击同步时间轴并定位 */
+function renderKmt(){
+  const years=[...new Set(KMT_OPS.map(o=>o.from.slice(0,4)))].sort();
+  $('#pane-kmt').innerHTML=`
+    <div class="unit-head"><h3 style="color:#5d7286">国民党军部署与进攻方向</h3><span>蓝箭头 · 点击定位</span></div>
+    <div class="blk"><p style="font-size:11px;color:var(--muted);line-height:1.85;margin:0">
+      下列为长征期间国民党中央军与各地方实力派的围堵部署，按时间排列，与地图国军图层一一对应。
+      点击任一条目会同步时间轴、定位地图并弹出番号详情。地图上：<b style="color:#5f96e8">蓝色实心箭头</b>＝进攻 / 追击方向，
+      <b style="color:#8fa3b9">灰蓝线</b>＝封锁线 / 防线，<b style="color:#8fa3b9">◇</b>＝指挥部 / 要地。
+      时间轴拖至最右时显示全部部署；回放时仅显示当期部署。</p></div>
+    ${years.map(y=>`<div class="blk"><h4>${y} 年</h4>
+      ${KMT_OPS.filter(o=>o.from.startsWith(y)).map(o=>`<div class="krow" data-kmt="${esc(o.id)}">
+        <div class="kd">${esc(o.from.slice(5).replace('-','.'))}</div>
+        <div><div class="kt">${esc(o.title)}</div><div class="ks">${esc(o.tag)}</div></div>
+      </div>`).join('')}
+    </div>`).join('')}`;
+  $$('#pane-kmt .krow').forEach(r=>r.onclick=()=>{
+    const o=KMT_BY_ID['k-'+r.dataset.kmt]; if(!o) return;
+    state.day=Math.min(TOTAL_DAYS,Math.max(0,toDay(o.from)));
+    updateTimeline(); syncLayers();
+    if(map) flyTo({center:[o.g[0][0],o.g[0][1]],zoom:6.6});
+    focusKmt('k-'+o.id);
+  });
+}
+
+function renderUnits(){
+  const pane=$('#pane-units');
+  if(!state.selected){ pane.style.removeProperty('--uc'); pane.innerHTML=renderOverviewUnits(); return; }
+  const a=ARMY[state.selected];
+  pane.style.setProperty('--uc',a.color);
+  pane.innerHTML=`
+    <div class="unit-head"><h3 style="color:${a.color}">${esc(a.name)}</h3><span>${esc(a.en)}</span></div>
+    <div class="color-key">
+      <span class="ck-line"></span>
+      <span><b>${esc(ARMY_TAG[state.selected])}</b> · 路线与番号统一色标<br>
+      地图路线、事件圆点、番号序列、番号演变、路线节点与时间轴刻度同色</span>
+      <span class="ck-hex">${a.color.toUpperCase()}</span>
+    </div>
+    <div class="unit-lead">${esc(a.sub)}</div>
+    <div class="blk"><h4>战略任务</h4><p>${a.mission}</p></div>
+    <div class="blk"><h4>统帅与主要首长</h4><p>${a.lead}</p></div>
+    <div class="blk"><h4>出发与终点</h4><dl class="kv">
+      <dt>出发</dt><dd>${esc(a.start)}</dd>
+      <dt>结束</dt><dd>${esc(a.end)}</dd>
+      <dt>途经</dt><dd>${esc(a.province)}</dd>
+    </dl></div>
+    <div class="blk"><h4>部队番号序列（含任务分工）</h4>
+      <div class="tree">${a.formation.map(f=>`
+        <div class="node"><div class="node-t"><i class="swatch"></i>${esc(f.t)}<em>${esc(f.tag)}</em></div>
+        <div class="node-d">${f.d}</div><span class="node-role">${esc(f.role)}</span></div>`).join('')}</div>
+    </div>
+    <div class="blk"><h4>番号演变与编制沿革</h4>
+      <ul class="change">${a.changes.map(c=>`<li><b>${esc(c[0])}</b>${c[1]}</li>`).join('')}</ul>
+    </div>
+    <div class="blk"><h4>行军路线节点（${ROUTES[state.selected].length} 处 · 按时间）</h4>
+      <div class="route-list" style="--ac:${a.color}">
+        ${ROUTES[state.selected].map(p=>`<div class="rnode">
+          <span class="rdate">${p.date.slice(5).replace('-','.')}</span>
+          <span class="rname">${esc(p.name)}</span>
+          ${p.ev?`<span class="rev">${esc(p.ev.t)}</span>`:''}</div>`).join('')}
+      </div></div>
+    <div class="blk"><h4>本路重大事件（${ROUTES[state.selected].filter(p=>p.ev).length} 处节点）</h4>
+      <p style="font-size:11px;color:var(--muted)">切换至「重大事件」标签可查看全部事件并按时间定位。</p></div>`;
+}
+function renderOverviewUnits(){
+  return `<div class="unit-head"><h3>四路红军番号总览</h3><span>点击左侧部队查看完整序列</span></div>
+    <div class="blk"><p>参加长征的红军部队共四支，按番号为：红一方面军（中央红军）、红二方面军（红二、六军团）、红四方面军、红二十五军。此外陕北红军（红二十六、二十七军）与红十五军团、西方野战军在会师与迎接北上中发挥关键作用。</p></div>
+    ${ARMY_ORDER.map(id=>{const a=ARMY[id];return `<div class="mini-card" data-go="${id}" style="--cc:${a.color}">
+      <div class="mc-t" style="color:${a.color}">${esc(a.name)}</div>
+      <dl class="kv">
+        <dt>出发</dt><dd>${esc(a.meta[0])} · ${esc(a.meta[2])}</dd>
+        <dt>结束</dt><dd>${esc(a.meta[1])} · ${esc(a.meta[3])}</dd>
+        <dt>主要番号</dt><dd>${esc(a.formation.slice(0,3).map(f=>f.t.replace(/（.*/,'')).join('、'))} 等</dd>
+      </dl></div>`;}).join('')}
+    <div class="blk"><h4>会师与整合</h4>
+      <ul class="change">
+        <li><b>1935.06</b>懋功会师：中央红军恢复红一方面军番号，红一、三、五军团与红九军团分别改称红一、三、五军与红三十二军。</li>
+        <li><b>1935.08</b>红一、四方面军混编为左、右两路军北上。</li>
+        <li><b>1935.09</b>永坪会师：红二十五军与红二十六、二十七军合编为红十五军团（第75、78、81师）。</li>
+        <li><b>1935.09</b>俄界会议：中央纵队与红一、红三军改编为陕甘支队。</li>
+        <li><b>1935.11</b>甘泉会师后恢复红一方面军番号，红十五军团编入序列。</li>
+        <li><b>1936.07</b>甘孜会师：红二、六军团与红三十二军合编为红二方面军。</li>
+        <li><b>1936.10</b>会宁、将台堡会师：三大主力会师，长征胜利结束，此前处于工农武装割据状态的各路红军整合为党中央和中革军委直接指挥下的一个整体。</li>
+      </ul></div>`;
+}
+$('#sidebarR').addEventListener('click',e=>{
+  const tr=e.target.closest('[data-go]');
+  if(tr){state.selected=tr.dataset.go;state.visible[tr.dataset.go]=true;
+    setTab('units');renderLeft();renderUnits();renderEvents();
+    updateGlow();flyTo(ARMY[tr.dataset.go].view,true);}
+});
+
+function renderEvents(){
+  const list=ALL_EVENTS.filter(e=>state.selected?e.army===state.selected:true);
+  const groups={}; list.forEach(e=>{const y=e.date.slice(0,4);(groups[y]=groups[y]||[]).push(e);});
+  $('#pane-events').innerHTML=`
+    <div class="unit-head"><h3>重大事件时序</h3><span>${list.length} 条</span></div>
+    <div class="blk"><p style="font-size:11px;color:var(--muted)">
+      ${state.selected?'当前仅显示「'+esc(ARMY_NAME(state.selected))+'"相关事件；点击左侧卡片可切换，再次点击卡片取消筛选。':'按时间排序，涵盖四路红军的出发、战役、会议、整编、会师与终点。点击任一条可定位地图。'}
+    </p></div>
+    ${Object.keys(groups).sort().map(y=>`<div class="blk"><h4>${y} 年</h4><ul class="evlist">
+      ${groups[y].map(e=>{const col=ARMY[e.army]?ARMY[e.army].color:'#ddd';return `<li class="ev ${state.event===e.id?'sel':''}" style="--ec:${col}" data-ev="${esc(e.id)}">
+        <div class="ev-date">${e.date.slice(5).replace('-','.')}</div>
+        <div><div class="ev-title" style="color:${col}"><i class="swatch" style="--uc:${col}"></i> ${esc(e.name||e.ev.t)}
+          <span class="ev-tag" style="color:${catColor(e.ev.c)}">${esc(e.ev.c)}</span></div>
+          <div class="ev-place">${esc(e.place)} · ${esc(ARMY_NAME(e.army))}</div></div></li>`;}).join('')}
+    </ul></div>`).join('')}`;
+  $$('#pane-events .ev').forEach(el=>el.onclick=()=>focusEvent(el.dataset.ev));
+}
+function renderOverview(){
+  $('#pane-overview').innerHTML=`
+    <div class="unit-head"><h3>全军总览 · 关键数据</h3><span>1934—1936</span></div>
+    <div class="blk"><h4>四路红军对照</h4>
+      ${[
+        ['central','#ef4b32','红一方面军（中央红军）','1934.10.10 于都 → 1935.10.19 吴起镇','历时1年 · 纵横11省 · 行程二万五千里','出发 8.6万余人；到达陕北约7000人（陕甘支队）'],
+        ['fourth','#e8a33a','红四方面军','1935.03 嘉陵江 → 1936.10.09 会宁','历时1年7个月 · 川康青甘4省 · 行程上万里','出发约8万余人；南下受挫后整编为6军19师'],
+        ['second','#37b8a9','红二方面军（红二、六军团）','1935.11.19 桑植 → 1936.10.22 将台堡','历时11个月 · 湘黔滇康川青甘陕8省','出发约1.7万—2.1万人；甘孜合编后约1.3万人'],
+        ['25','#9b7ae0','红二十五军','1934.11.16 何家冲 → 1935.09.15 永坪','历时10个月 · 豫鄂陕甘4省 · 近万里','出发2980余人；到达3400余人，人数不减反增']
+      ].map(r=>`<div class="mini-card" data-go="${r[0]}" style="--cc:${r[1]};cursor:pointer">
+        <div class="mc-t" style="color:${r[1]}">${r[2]}</div>
+        <dl class="kv"><dt>起止</dt><dd>${r[3]}</dd><dt>历程</dt><dd>${r[4]}</dd><dt>兵力</dt><dd>${r[5]}</dd></dl></div>`).join('')}
+    </div>
+    <div class="blk"><h4>七次重要会师</h4><ul class="change">
+      <li><b>1934.10</b>木黄会师：红六军团与红三军，红三军恢复红二军团番号。</li>
+      <li><b>1935.06</b>懋功会师：中央红军与红四方面军，兵力达十多万人。</li>
+      <li><b>1935.09</b>永坪会师：红二十五军与红二十六、二十七军，合编红十五军团。</li>
+      <li><b>1935.11</b>甘泉会师：陕甘支队与红十五军团，恢复红一方面军番号。</li>
+      <li><b>1936.01</b>江口会合：红十八师归还红二、六军团建制。</li>
+      <li><b>1936.07</b>甘孜会师：红二、六军团与红四方面军，成立红二方面军。</li>
+      <li><b>1936.10</b>会宁（10.9）、将台堡（10.22）会师：三大主力会师，长征胜利结束。</li>
+    </ul></div>
+    <div class="blk"><h4>编制口径说明</h4><p>
+      「红一方面军」番号在1931年11月与1934年1月两度撤销、所部统称中央红军，1935年6月懋功会师后恢复，1935年9月主力改编为陕甘支队，同年11月再度恢复。
+      「红二方面军」番号直至1936年7月5日在甘孜才正式成立，此前以红二、红六军团名义行动。
+      红四方面军1935年3月出发时辖5个军，1936年4月南下受挫后整编为6个军19个师。
+    </p></div>`;
+}
+function renderSources(){
+  $('#pane-sources').innerHTML=`
+    <div class="unit-head"><h3>史料来源与说明</h3><span>一手 / 官方权威源</span></div>
+    <div class="blk"><h4>主要依据</h4><ul class="src">
+      <li>人民网·党史频道《长征的决策和部署》——中央红军出发序列、5个军团与2个野战纵队的番号、主官、兵力、行军部署：<br><a href="https://dangshi.people.com.cn/n1/2016/1013/c85037-28776625.html" target="_blank">dangshi.people.com.cn/n1/2016/1013/c85037-28776625.html</a></li>
+      <li>人民网·党史频道《解读长征(9)：各路红军编制序列都发生哪些变化？》（央广军事）——各方面军番号演变：<br><a href="https://dangshi.people.com.cn/BIG5/n1/2016/0901/c85037-28683918.html" target="_blank">dangshi.people.com.cn/BIG5/n1/2016/0901/c85037-28683918.html</a></li>
+      <li>人民网·党史频道《解读长征(5)：各路红军长征都经过了哪些省份？》（军史专家、中国人民革命军事博物馆研究员姜廷玉）——各路路线、省份、起止时间：<br><a href="https://dangshi.people.com.cn/n1/2016/0823/c85037-28657818.html" target="_blank">dangshi.people.com.cn/n1/2016/0823/c85037-28657818.html</a></li>
+      <li>人民网·党史频道《永远的丰碑 永恒的记忆》（经济日报）——中央红军重大事件日期与内容：<br><a href="https://dangshi.people.com.cn/n1/2016/1021/c85037-28797101.html" target="_blank">dangshi.people.com.cn/n1/2016/1021/c85037-28797101.html</a></li>
+      <li>中国共产党新闻网《红军长征中的会师》——永坪、甘泉、甘孜、会宁、将台堡会师：<br><a href="https://cpc.people.com.cn/BIG5/n1/2025/1030/c443712-40592732.html" target="_blank">cpc.people.com.cn/BIG5/n1/2025/1030/c443712-40592732.html</a></li>
+      <li>中国共产党新闻网《红6军团的西征》——红二、六军团主官与番号：<br><a href="https://cpc.people.com.cn/BIG5/n1/2024/0804/c443712-40291999.html" target="_blank">cpc.people.com.cn/BIG5/n1/2024/0804/c443712-40291999.html</a></li>
+      <li>人民网·党史频道《红四方面军铸就历史铁流与英雄战歌》／中国共产党新闻网《徐向前》——红四方面军总部与各军番号、主官、1936年整编：<br><a href="https://dangshi.people.com.cn/n1/2019/0223/c85037-30898568-2.html" target="_blank">dangshi.people.com.cn/n1/2019/0223/c85037-30898568-2.html</a></li>
+      <li>中央党史和文献研究院《铁血长征荆楚志 精神丰碑耀千秋》——红二、六军团长征路线与红四方面军强渡嘉陵江：<br><a href="https://www.dswxyjy.org.cn/n1/2026/0630/c244516-40750832.html" target="_blank">www.dswxyjy.org.cn/n1/2026/0630/c244516-40750832.html</a></li>
+      <li>中国青年报《红25军长征》／河南省文物局《一支「娃娃军」的万里征途》——红二十五军路线、战斗与日期：<br><a href="https://zqb.cyol.com/content/2006-11/02/content_1559726.htm" target="_blank">zqb.cyol.com/content/2006-11/02/content_1559726.htm</a>　<a href="https://wwj.henan.gov.cn/2026/10-22/3439620.html" target="_blank">wwj.henan.gov.cn/2026/10-22/3439620.html</a></li>
+      <li>中国人民政治协商会议贵州省委员会《红军长征中的黎平整编》——各军团兵力与行军部署：<br><a href="https://gzszx.gov.cn/gzzxb/web/doc/detail/d_1299439773813568" target="_blank">gzszx.gov.cn / 黎平整编</a></li>
+    </ul></div>
+    <div class="blk"><h4>国民党军部署图层的史料依据</h4><ul class="src">
+      <li>中华人民共和国国防部《1934年：中国共产党领导红军主力开始长征》——四道封锁线位置与守军、「追剿军」编成：<br><a href="https://www.mod.gov.cn/gfbw/gfjy_index/js_214151/4852696.html" target="_blank">mod.gov.cn/gfbw/gfjy_index/js_214151/4852696.html</a></li>
+      <li>云南网《巧渡金沙江》系列——第二路军编成（吴奇伟、周浑元、孙渡、王家烈四纵队）、蒋介石飞重庆／贵阳督剿：<br><a href="https://yn.yunnan.cn/system/2026/10/30/034186262.shtml" target="_blank">yn.yunnan.cn/system/2026/10/30/034186262.shtml</a></li>
+      <li>人民网·党史频道《四渡赤水战役：中央红军战略转移的决定性胜利》——川军江防、各纵队合围部署：<br><a href="https://dangshi.people.com.cn/n1/2016/1006/c85037-28757551.html" target="_blank">dangshi.people.com.cn/n1/2016/1006/c85037-28757551.html</a></li>
+      <li>新华网（解放军报）《大渡河战役：红军的生死存亡之战》与贵州红色记忆平台《国民党军阻止中央红军与红四方面军会师》——大渡河防线、松潘堵截部署：<br><a href="https://www.xinhuanet.com/mil/2019-09/10/c_1210274473.htm" target="_blank">xinhuanet.com/mil/2019-09/10/c_1210274473.htm</a>　<a href="https://www.gzhongsejiyi.com/item/4134" target="_blank">gzhongsejiyi.com/item/4134</a></li>
+      <li>中国军网《嘉陵江战役：大规模强渡江河的模范战例》、央广网《解读长征(37/38)》——嘉陵江防线、百丈关与乌蒙山围堵：<br><a href="https://www.81.cn/js_208592/jdt_208593/16209692.html" target="_blank">81.cn / 嘉陵江战役</a>　<a href="https://wcm1.cnr.cn/pub/en_US/js2014/ycdj/20160920/t20160920_523148598.html" target="_blank">cnr.cn / 乌蒙山回旋战</a></li>
+      <li>甘肃党史网《陕甘边最后一次反「围剿」斗争》、中国共产党新闻网《西安事变前后争取东北军工作的回忆》——劳山、榆林桥、直罗镇与东北军序列：<br><a href="http://www.gsds.gov.cn/gsshsjng/gansudangshizhizui/20210628/10542929486e291d3eb.htm" target="_blank">gsds.gov.cn / 陕甘边反「围剿」</a></li>
+      <li>中国共产党新闻网《中国共产党大事记·1936年》——东征、西征对手与西兰大道堵截：<br><a href="https://cpc.people.com.cn/BIG5/64162/64164/4415984.html" target="_blank">cpc.people.com.cn/BIG5/64162/64164/4415984.html</a></li>
+    </ul></div>
+    <div class="disclaimer">
+      <b style="color:var(--gold)">阅读提示</b><br>
+      1. 路线为史料中记载的关键节点按顺序连线，属<b>示意性行军方向</b>，并非精确行军轨迹；四渡赤水、乌蒙山回旋战等大范围机动已作简化。<br>
+      2. 节点坐标取自今日地名（多为县域中心）的近似位置，采用 GCJ-02 坐标系，存在数公里级误差，不用于精确定位或测绘。<br>
+      3. 部分史实存在不同口径：红四方面军长征起点有「1935年3月强渡嘉陵江」与「3—4月渡过嘉陵江、涪江、岷江」等表述；红二方面军出发兵力有1.7万、2.1万等统计。本页以官方党史文献表述为准，有分歧处已在文中并列或采用较宽表述。<br>
+      4. 本页为历史教育与资料整理用途，依据公开权威史料编写，不含涉密或敏感地理信息。
+    </div>`;
+}
+
+/* ============================================================
+   五、地图
+   ============================================================ */
+let pinSeq=0;
+/* #rrggbb + alpha → rgba()：SDK 不认八位十六进制，统一走这个函数 */
+function rgba(hex,a){
+  const h=hex.replace('#','');
+  const r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+function svgPin(color,big,glow){
+  const s0=big?26:18, r0=big?6.5:4.5, c0=s0/2;
+  if(glow){
+    /* 光晕态：径向渐变柔光 + 同色外环，静态不发散 */
+    const pad=big?11:8, s=s0+pad*2, c=s/2, gid='pg'+(pinSeq++);
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+      <defs><radialGradient id="${gid}">
+        <stop offset="20%" stop-color="${color}" stop-opacity="0.55"/>
+        <stop offset="46%" stop-color="${color}" stop-opacity="0.28"/>
+        <stop offset="72%" stop-color="${color}" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+      </radialGradient></defs>
+      <circle cx="${c}" cy="${c}" r="${c}" fill="url(#${gid})"/>
+      <circle cx="${c}" cy="${c}" r="${c0-1.5}" fill="${color}" fill-opacity="0.16"
+        stroke="${color}" stroke-opacity="0.42" stroke-width="1.2"/>
+      <circle cx="${c}" cy="${c}" r="${r0}" fill="${color}" stroke="#ffffff" stroke-width="1.3"/></svg>`;
+    return 'data:image/svg+xml,'+encodeURIComponent(svg);
+  }
+  const s=s0, c=c0, r=r0;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+    <circle cx="${c}" cy="${c}" r="${c-1.5}" fill="${color}" fill-opacity="0.20" stroke="${color}" stroke-width="1.4"/>
+    <circle cx="${c}" cy="${c}" r="${r}" fill="${color}" stroke="#ffffff" stroke-width="1.2"/></svg>`;
+  return 'data:image/svg+xml,'+encodeURIComponent(svg);
+}
+function svgBase(color){
+  const s=20,c=s/2;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+    <rect x="${c-5.4}" y="${c-5.4}" width="10.8" height="10.8" transform="rotate(45 ${c} ${c})"
+      fill="${color}" fill-opacity="0.92" stroke="#10161f" stroke-width="1.6"/>
+    <circle cx="${c}" cy="${c}" r="1.7" fill="#10161f"/></svg>`;
+  return 'data:image/svg+xml,'+encodeURIComponent(svg);
+}
+/* 江河名用「贴图标记」而不是文字标签：地图的文字层有避让剔除，
+   在密集的全景视图下江河名会被优先丢掉；标记不参与避让，始终可见 */
+function svgRiverLabel(text){
+  const fs=12, pad=3;
+  /* 宽高必须是整数像素，否则 MarkerStyle 会渲染不出图（实测半像素尺寸直接变空白） */
+  const w=Math.round(text.length*fs*1.05)+pad*2, h=fs+pad*2+4;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+    <text x="50%" y="52%" text-anchor="middle" dominant-baseline="middle"
+      font-family="Microsoft YaHei, PingFang SC, Hiragino Sans GB, sans-serif" font-size="${fs}"
+      letter-spacing="0.6" fill="${RIVER_TEXT}" stroke="rgba(252,248,240,0.95)" stroke-width="3.4"
+      paint-order="stroke" stroke-linejoin="round">${text}</text></svg>`;
+  return {w,h,src:'data:image/svg+xml,'+encodeURIComponent(svg)};
+}
+/* ------------------------------------------------------------
+   进攻方向箭头几何
+   目标形态：尾细 → 身渐宽 → 倒钩大箭头的实心箭头（如军事要图上的进攻箭标）。
+   做法：先把经纬度换算到当前缩放级别的世界像素坐标，在像素平面里按箭头总长
+   的比例算宽度与箭头尺寸，拼出闭合多边形，再换回经纬度交给 MultiPolygon 填充。
+   缩放变化时重建一次，箭头粗细才能与固定像素宽度的路线保持视觉一致。
+   ------------------------------------------------------------ */
+const TILE_PX = 256;
+const clampNum = (v,a,b) => Math.min(b, Math.max(a, v));
+function worldPx(lat,lng,z){
+  const s=TILE_PX*Math.pow(2,z), r=lat*Math.PI/180;
+  return [(lng+180)/360*s, (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*s];
+}
+function pxLatLng(x,y,z){
+  const s=TILE_PX*Math.pow(2,z);
+  const lng=x/s*360-180, n=Math.PI-2*Math.PI*y/s;
+  return [180/Math.PI*Math.atan((Math.exp(n)-Math.exp(-n))/2), lng];
+}
+/* 沿折线等距重采样 */
+function resamplePath(pts,step){
+  if(pts.length<2) return pts.slice();
+  const out=[pts[0]];
+  for(let i=1;i<pts.length;i++){
+    const a=pts[i-1], b=pts[i];
+    const dx=b[0]-a[0], dy=b[1]-a[1], d=Math.hypot(dx,dy);
+    if(d<1e-9) continue;
+    const n=Math.max(1,Math.round(d/step));
+    for(let k=1;k<=n;k++) out.push([a[0]+dx*k/n, a[1]+dy*k/n]);
+  }
+  return out;
+}
+/* Chaikin 圆角平滑，端点保留 */
+function chaikinPath(pts,iters){
+  let p=pts;
+  for(let k=0;k<iters;k++){
+    const q=[p[0]];
+    for(let i=0;i<p.length-1;i++){
+      const a=p[i], b=p[i+1];
+      q.push([a[0]*0.72+b[0]*0.28, a[1]*0.72+b[1]*0.28]);
+      q.push([a[0]*0.28+b[0]*0.72, a[1]*0.28+b[1]*0.72]);
+    }
+    q.push(p[p.length-1]);
+    p=q;
+  }
+  return p;
+}
+/* 生成箭头多边形环（返回 [[lat,lng],...] 闭合环，含起点与终点） */
+function arrowRing(ptsLl,z){
+  let c = ptsLl.map(p=>worldPx(p[0],p[1],z));
+  if(c.length>2) c = chaikinPath(resamplePath(c,10),2);
+  c = resamplePath(c,2.5);
+  if(c.length<2) return null;
+  const cum=[0]; let L=0;
+  for(let i=1;i<c.length;i++){ L+=Math.hypot(c[i][0]-c[i-1][0], c[i][1]-c[i-1][1]); cum.push(L); }
+  if(L<4) return null;
+  /* 尺寸：以「参考长度」定粗细则短箭头不至于细成针、长箭头不至于涨成带，
+     箭头三角始终明显宽于箭身（约 3.8 倍），倒钩略向后掠 */
+  const w   = clampNum(L, 20, 180);
+  const hwB = 1.9 + (w-20)*(3.6/160);        /* 尾接箭头处半宽 */
+  const hwT = hwB*0.58;                      /* 尾部半宽（平口细尾） */
+  const hwC = Math.min(20, hwB*3.8, L*0.50); /* 倒钩半宽（不超过箭头总长的一半） */
+  const head = clampNum(L*0.30, 6, 34);      /* 箭头三角长度 */
+  const body = Math.max(L-head, L*0.34);
+  const nrm = i => {
+    const a=c[Math.max(0,i-1)], b=c[Math.min(c.length-1,i+1)];
+    const tx=b[0]-a[0], ty=b[1]-a[1], d=Math.hypot(tx,ty)||1;
+    return [tx/d,ty/d];
+  };
+  const left=[], right=[];
+  let last=0;
+  for(let i=0;i<c.length;i++){
+    if(cum[i]>body) break;
+    const [tx,ty]=nrm(i), nx=-ty, ny=tx;
+    const t=body>0?Math.pow(cum[i]/body,1.25):1;
+    const hw=hwT+(hwB-hwT)*t;
+    left.push([c[i][0]+nx*hw, c[i][1]+ny*hw]);
+    right.push([c[i][0]-nx*hw, c[i][1]-ny*hw]);
+    last=i;
+  }
+  const [tx,ty]=nrm(last), nx=-ty, ny=tx;
+  /* 倒钩中心略向后掠，形成军事要图上那种后掠箭镞 */
+  const bx=c[last][0]-tx*head*0.15, by=c[last][1]-ty*head*0.15;
+  const tip=c[c.length-1];
+  const ring=left.concat(
+    [[bx+nx*hwC, by+ny*hwC], [tip[0],tip[1]], [bx-nx*hwC, by-ny*hwC]],
+    right.reverse()
+  );
+  return ring.map(p=>pxLatLng(p[0],p[1],z));
+}
+function initMap(){
+  if(typeof TMap==='undefined'){ $('#mapFallback').classList.add('show'); return; }
+  try{
+    map=new TMap.Map('map',{zoom:5.3,center:new TMap.LatLng(31.6,106.2),pitch:0,rotation:0});
+    const st={on:{},dim:{},sel:{},glow:{}};
+    const dt={on:{},glow:{}};
+    const labelStyles={lb:new TMap.LabelStyle({color:'#3a2a1c',size:11,offset:{x:0,y:12},
+      alignment:'center',verticalAlignment:'top'}),
+      hide:new TMap.LabelStyle({color:'rgba(0,0,0,0)',size:1}),
+      kmt:new TMap.LabelStyle({color:KMT_TEXT,size:10.5,offset:{x:0,y:-13},
+        alignment:'center',verticalAlignment:'bottom'})};
+    ARMY_ORDER.forEach(id=>{
+      const c=ARMY[id].color;
+      /* 注意：本版 SDK 不识别 #RRGGBBAA 八位十六进制，会退化成白色，
+         因此所有带透明度的颜色一律用 rgba() 生成 */
+      st.on[id]=new TMap.PolylineStyle({color:rgba(c,1),width:5,borderWidth:1.2,
+        borderColor:'rgba(30,20,12,0.55)',lineCap:'round',showArrow:true,
+        arrowOptions:{width:5,height:7,space:70}});
+      st.dim[id]=new TMap.PolylineStyle({color:rgba(c,0.55),width:3.4,borderWidth:0,lineCap:'round'});
+      /* 选中态主线：加粗 + 浅色描边，外面叠三层柔光 */
+      st.sel[id]=new TMap.PolylineStyle({color:rgba(c,1),width:6.5,borderWidth:1.4,
+        borderColor:'rgba(255,244,222,0.85)',lineCap:'round',showArrow:true,
+        arrowOptions:{width:6,height:9,space:62}});
+      st.glow[id+'1']=new TMap.PolylineStyle({color:rgba(c,0.30),width:12,borderWidth:0,lineCap:'round'});
+      st.glow[id+'2']=new TMap.PolylineStyle({color:rgba(c,0.14),width:20,borderWidth:0,lineCap:'round'});
+      st.glow[id+'3']=new TMap.PolylineStyle({color:rgba(c,0.06),width:30,borderWidth:0,lineCap:'round'});
+      dt.on[id+'d']=new TMap.MarkerStyle({width:18,height:18,anchor:{x:9,y:9},src:svgPin(c,false)});
+      dt.on[id+'b']=new TMap.MarkerStyle({width:26,height:26,anchor:{x:13,y:13},src:svgPin(c,true)});
+      dt.glow[id+'d']=new TMap.MarkerStyle({width:34,height:34,anchor:{x:17,y:17},src:svgPin(c,false,true)});
+      dt.glow[id+'b']=new TMap.MarkerStyle({width:48,height:48,anchor:{x:24,y:24},src:svgPin(c,true,true)});
+      /* 路线起点的部队番号标签，颜色 = 路线颜色 */
+      labelStyles['tag_'+id]=new TMap.LabelStyle({color:c,size:13,offset:{x:0,y:-28},
+        alignment:'center',verticalAlignment:'bottom'});
+    });
+    /* 透明占位样式：本版 SDK 传空数组不会清空图层，用一条完全透明的图形占位 */
+    const hideLine=new TMap.PolylineStyle({color:'rgba(0,0,0,0)',width:1,borderWidth:0});
+    const hideDot=new TMap.MarkerStyle({width:1,height:1,anchor:{x:0,y:0},
+      src:'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>')});
+    ['glow','dim','on','sel'].forEach(k=>{ st[k].hide=hideLine; });
+    ['on','glow'].forEach(k=>{ dt[k].hide=hideDot; });
+    /* —— 国民党军图层：蓝色实心进攻箭头（多边形）＋ 灰蓝封锁线 ＋ 菱形指挥部 —— */
+    const kst={
+      ln:new TMap.PolylineStyle({color:rgba(KMT_COLOR,0.88),width:3.6,borderWidth:1.2,
+        borderColor:'rgba(14,20,28,0.72)',lineCap:'round'}),
+      hide:hideLine
+    };
+    const kArrowStyles={
+      arw:new TMap.PolygonStyle({color:rgba(KMT_ARROW,0.95),showBorder:true,
+        borderColor:KMT_ARROW_EDGE,borderWidth:1.1}),
+      hide:new TMap.PolygonStyle({color:'rgba(0,0,0,0)',showBorder:false,borderWidth:0})
+    };
+    const kmtMarkStyles={
+      base:new TMap.MarkerStyle({width:20,height:20,anchor:{x:10,y:10},src:svgBase(KMT_COLOR)}),
+      hide:hideDot
+    };
+    /* 建层顺序决定压盖关系：江河在最底，其次国军封锁线、进攻箭头，光晕、主线、标签与点位在上 */
+    const riverLabelStyles={};
+    RIVERS.forEach(r=>{
+      const l=svgRiverLabel(r.name);
+      riverLabelStyles['rvl-'+r.id]=new TMap.MarkerStyle({width:l.w,height:l.h,
+        anchor:{x:l.w/2,y:l.h/2},src:l.src});
+    });
+    riverLabelStyles.hide=hideDot;
+    riverLayer=new TMap.MultiPolyline({map,styles:{
+      rv:new TMap.PolylineStyle({color:rgba(RIVER_COLOR,0.62),width:3.2,borderWidth:0.8,
+        borderColor:'rgba(255,255,255,0.55)',lineCap:'round'}),
+      hide:hideLine},geometries:[]});
+    kmtLayers.line=new TMap.MultiPolyline({map,styles:kst,geometries:[]});
+    kmtLayers.arrow=new TMap.MultiPolygon({map,styles:kArrowStyles,geometries:[]});
+    lineLayers.glow=new TMap.MultiPolyline({map,styles:st.glow,geometries:[]});
+    lineLayers.dim=new TMap.MultiPolyline({map,styles:st.dim,geometries:[]});
+    lineLayers.on=new TMap.MultiPolyline({map,styles:st.on,geometries:[]});
+    lineLayers.sel=new TMap.MultiPolyline({map,styles:st.sel,geometries:[]});
+    try{
+      labelLayer=new TMap.MultiLabel({map,styles:labelStyles,geometries:[]});
+    }catch(err){ console.warn('label layer unavailable',err); labelLayer=null; }
+    riverLabelLayer=new TMap.MultiMarker({map,styles:riverLabelStyles,geometries:[]});
+    dotLayers.glow=new TMap.MultiMarker({map,styles:dt.glow,geometries:[]});
+    dotLayers.on=new TMap.MultiMarker({map,styles:dt.on,geometries:[]});
+    bindDotClick(dotLayers.glow); bindDotClick(dotLayers.on);
+    /* 国军标记层（菱形＝指挥部/要地），并绑定点击弹出详情 */
+    kmtLayers.mark=new TMap.MultiMarker({map,styles:kmtMarkStyles,geometries:[]});
+    try{
+      kmtLayers.line.on('click',e=>{ if(e&&e.geometry) focusKmt(String(e.geometry.id)); });
+      kmtLayers.arrow.on('click',e=>{ if(e&&e.geometry) focusKmt(String(e.geometry.id)); });
+      kmtLayers.mark.on('click',e=>{ if(e&&e.geometry) focusKmt(String(e.geometry.id)); });
+    }catch(err){ console.warn('kmt layer click unavailable',err); }
+    try{ infoWin=new TMap.InfoWindow({map,position:new TMap.LatLng(31.6,106.2),
+      content:'',offset:{x:0,y:-14},enableCustom:true}); infoWin.close(); }catch(err){ infoWin=null; }
+    lastZoom=map.getZoom();
+    try{ map.on('zoom_changed',onZoomChanged); }catch(err){ console.warn('zoom event unavailable',err); }
+    updateGlow();
+  }catch(err){
+    console.error('map init failed',err);
+    $('#mapFallback').classList.add('show');
+  }
+}
+/* 空列表兜底：传空数组不会清空图层，改为塞一条透明图形 */
+function withHide(list,mode){
+  if(list.length) return list;
+  const ll=new TMap.LatLng(0,0);
+  if(mode==='poly')
+    return [{id:'__hide',styleId:'hide',
+      paths:[ll,new TMap.LatLng(0.002,0),new TMap.LatLng(0,0.002)]}];
+  return [mode==='pos'
+    ? {id:'__hide',styleId:'hide',position:ll}
+    : {id:'__hide',styleId:'hide',paths:[ll,new TMap.LatLng(0.002,0.002)]}];
+}
+function syncLayers(){
+  if(!map || !lineLayers.on || !dotLayers.on) return;
+  const maxDay=state.day, labels=[];
+  const gGlow=[], gDim=[], gOn=[], gSel=[], dGlow=[], dOn=[];
+  ARMY_ORDER.forEach(id=>{
+    if(!state.visible[id]) return;
+    const pts=ROUTES[id].filter(p=>toDay(p.date)<=maxDay);
+    const selected=state.selected===id;
+    if(pts.length>=2){
+      const paths=pts.map(p=>new TMap.LatLng(p.g[0],p.g[1]));
+      if(selected){
+        if(state.glow){
+          /* 外淡内浓三层叠加，模拟柔光扩散；主线单独一层压在上面 */
+          gGlow.push({id:'gl3-'+id,styleId:id+'3',paths});
+          gGlow.push({id:'gl2-'+id,styleId:id+'2',paths});
+          gGlow.push({id:'gl1-'+id,styleId:id+'1',paths});
+        }
+        gSel.push({id:'ln-'+id,styleId:id,paths});
+      }else if(state.selected){
+        gDim.push({id:'ln-'+id,styleId:id,paths});
+      }else{
+        gOn.push({id:'ln-'+id,styleId:id,paths});
+      }
+    }
+    if(state.showLabels){
+      if(pts.length) labels.push({id:'tag-'+id,styleId:'tag_'+id,
+        position:new TMap.LatLng(pts[0].g[0],pts[0].g[1]),content:ARMY_TAG[id]});
+      if(!state.selected||selected){
+        pts.forEach((p,i)=>{
+          if(p.ev && ['start','end','join','major','meeting'].includes(p.kind)){
+            labels.push({id:'lb-'+id+'-'+i,styleId:'lb',position:new TMap.LatLng(p.g[0],p.g[1]),content:p.name});
+          }
+        });
+      }
+    }
+  });
+  lineLayers.glow.setGeometries(withHide(gGlow));
+  lineLayers.dim.setGeometries(withHide(gDim));
+  lineLayers.on.setGeometries(withHide(gOn));
+  lineLayers.sel.setGeometries(withHide(gSel));
+  if(labelLayer) labelLayer.setGeometries(withHide(labels,'pos'));
+  if(state.showEvents){
+    ALL_EVENTS.forEach(e=>{
+      if(!state.visible[e.army]) return;
+      if(toDay(e.date)>maxDay) return;
+      const big=['会师','出发','终点'].includes(e.ev.c)||e.kind==='start'||e.kind==='end'||e.kind==='join';
+      const glowDot=state.selected===e.army && state.glow;
+      (glowDot?dGlow:dOn).push({id:e.id,styleId:e.army+(big?'b':'d'),
+        position:new TMap.LatLng(e.lat,e.lng)});
+    });
+  }
+  dotLayers.glow.setGeometries(withHide(dGlow,'pos'));
+  dotLayers.on.setGeometries(withHide(dOn,'pos'));
+  /* —— 主要江河：不随时间轴变化，只受「江河」开关控制 —— */
+  if(riverLayer){
+    const rl=[], rlm=[];
+    if(state.showRivers){
+      RIVERS.forEach(r=>{
+        rl.push({id:'rv-'+r.id,styleId:'rv',paths:r.g.map(p=>new TMap.LatLng(p[0],p[1]))});
+        rlm.push({id:'rvl-'+r.id,styleId:'rvl-'+r.id,position:new TMap.LatLng(r.gl[0],r.gl[1])});
+      });
+    }
+    riverLayer.setGeometries(withHide(rl));
+    if(riverLabelLayer) riverLabelLayer.setGeometries(withHide(rlm,'pos'));
+  }
+  /* —— 国民党军部署：时间轴联动 ——
+     拖至最右（全景/总结视图）时显示全部部署；
+     拖动或回放到某一日期时，仅显示该日期处于生效窗口内的部署 */
+  if(kmtLayers.line && kmtLayers.mark){
+    const kArrows=[],kLines=[],kMarks=[];
+    const atEnd=state.day>=TOTAL_DAYS;
+    if(state.showKmt){
+      const z=map.getZoom();
+      KMT_OPS.forEach(o=>{
+        const f=toDay(o.from), t=toDay(o.to);
+        if(!(atEnd || (state.day>=f && state.day<=t))) return;
+        if(o.kind==='base'){
+          kMarks.push({id:'k-'+o.id,styleId:'base',position:new TMap.LatLng(o.g[0][0],o.g[0][1])});
+        }else if(o.kind==='arrow'){
+          const ring=arrowRing(o.g,z);
+          if(ring) kArrows.push({id:'k-'+o.id,styleId:'arw',
+            paths:ring.map(p=>new TMap.LatLng(p[0],p[1]))});
+        }else{
+          kLines.push({id:'k-'+o.id,styleId:'ln',paths:o.g.map(p=>new TMap.LatLng(p[0],p[1]))});
+        }
+        if(state.showLabels && (!atEnd || o.kind!=='arrow')){
+          labels.push({id:'kl-'+o.id,styleId:'kmt',
+            position:new TMap.LatLng(o.g[0][0],o.g[0][1]),content:o.lab||o.tag});
+        }
+      });
+    }
+    kmtLayers.arrow.setGeometries(withHide(kArrows,'poly'));
+    kmtLayers.line.setGeometries(withHide(kLines));
+    kmtLayers.mark.setGeometries(withHide(kMarks,'pos'));
+    if(labelLayer) labelLayer.setGeometries(withHide(labels,'pos'));
+  }
+}
+function flyTo(v,centerOnly){
+  if(!map) return;
+  try{ map.setCenter(new TMap.LatLng(v.center[0],v.center[1])); map.setZoom(v.zoom); }
+  catch(e){ console.warn(e); }
+}
+const VIEWS={
+  all:{center:[31.6,106.2],zoom:5.3},
+  central:{center:[31.0,106.8],zoom:5.6},
+  fourth:{center:[31.9,103.2],zoom:6.1},
+  second:{center:[29.0,105.2],zoom:5.7},
+  '25':{center:[34.2,109.4],zoom:6.1},
+  join:{center:[35.9,107.2],zoom:7.0}
+};
+$$('[data-view]').forEach(b=>b.onclick=()=>{ flyTo(VIEWS[b.dataset.view]); });
+$('#btnReset').onclick=()=>{
+  state.selected=null;state.day=TOTAL_DAYS;state.event=null;
+  ARMY_ORDER.forEach(id=>state.visible[id]=true);
+  $('#tgEvents').checked=true;$('#tgLabels').checked=true;$('#tgGlow').checked=true;
+  $('#tgKmt').checked=true;$('#tgRivers').checked=true;
+  state.showEvents=true;state.showLabels=true;state.glow=true;state.showKmt=true;state.showRivers=true;
+  stopPlay();updateTimeline();renderLeft();renderUnits();renderEvents();updateGlow();flyTo(VIEWS.all);
+  if(infoWin){try{infoWin.close();}catch(e){}}
+};
+$('#zIn').onclick=()=>{if(map)map.setZoom(Math.min(18,map.getZoom()+1));};
+$('#zOut').onclick=()=>{if(map)map.setZoom(Math.max(3,map.getZoom()-1));};
+
+/* SDK 的信息窗外壳是一个白底 + 内边距（25/10/12）的容器，会把深色卡片套出一圈白边，
+   并把内部文字继承成居中。这里把外壳抹平，卡片外观完全交给 .iw 自己 */
+function fitInfoWin(){
+  const el=document.querySelector('.iw');
+  if(!el || !el.parentElement) return;
+  const p=el.parentElement;
+  p.style.background='transparent';
+  p.style.padding='0';
+  p.style.boxShadow='none';
+  p.style.borderRadius='0';
+}
+function openInfo(html,lat,lng){
+  if(!infoWin) return;
+  try{
+    infoWin.setPosition(new TMap.LatLng(lat,lng));
+    infoWin.setContent(html);
+    infoWin.open();
+    fitInfoWin();
+    requestAnimationFrame(fitInfoWin);
+  }catch(err){ console.warn(err); }
+}
+function focusEvent(id,move=true){
+  const e=EV_BY_ID[id]; if(!e) return;
+  state.event=id;
+  if(toDay(e.date)>state.day){ state.day=Math.min(TOTAL_DAYS,toDay(e.date)+3); updateTimeline(); syncLayers(); }
+  if(move && map) flyTo({center:[e.lat,e.lng],zoom:7.0});
+  if(map){
+    const html=`<div class="iw"><div class="iw-date">${esc(fmtDate(e.date))} · ${esc(e.ev.c)}</div>
+      <div class="iw-title" style="color:${ARMY[e.army]?ARMY[e.army].color:'#f3ebde'}">${esc(e.name||e.ev.t)}</div>
+      <div class="iw-desc">${esc(e.ev.d)}</div>
+      <div class="iw-unit"><b style="color:var(--gold)">地点</b> ${esc(e.place)}　<b style="color:var(--gold)">部队</b> ${esc(ARMY_NAME(e.army))}<br>
+      <b style="color:var(--gold)">涉及番号</b> ${esc(e.ev.u||'—')}</div></div>`;
+    openInfo(html,e.lat,e.lng);
+  }
+  setTab('events'); renderEvents();
+  const el=document.querySelector(`#pane-events .ev[data-ev="${id}"]`);
+  if(el) el.scrollIntoView({block:'center',behavior:'smooth'});
+}
+/* 点击国军部署（箭头 / 封锁线 / 菱形标记）弹出详情 */
+function focusKmt(id){
+  const o=KMT_BY_ID[id]; if(!o) return;
+  const range=o.from===o.to ? fmtDate(o.from) : fmtDate(o.from)+' — '+fmtDate(o.to);
+  const kindTxt={arrow:'进攻 / 追击方向',line:'封锁线 / 防线',base:'指挥部 / 要地'}[o.kind]||'';
+  if(map){
+    const html=`<div class="iw"><div class="iw-date" style="color:${KMT_IW_TEXT}">${esc(range)} · 国民党军 · ${esc(kindTxt)}</div>
+      <div class="iw-title" style="color:${KMT_IW_TITLE}">${esc(o.title)}</div>
+      <div class="iw-desc">${esc(o.d)}</div>
+      <div class="iw-unit"><b style="color:${KMT_IW_TEXT}">部队</b> ${esc(o.tag)}${o.u?`<br><b style="color:${KMT_IW_TEXT}">涉及番号</b> ${esc(o.u)}`:''}</div></div>`;
+    openInfo(html,o.g[0][0],o.g[0][1]);
+  }
+}
+
+/* ============================================================
+   六、时间轴
+   ============================================================ */
+const PHASES=[
+  [toDay('1934-09-01'),'长征前夕 · 第五次反「围剿」失利，各根据地准备战略转移'],
+  [toDay('1934-10-10'),'中央红军撤离中央苏区，突破四道封锁线；红二十五军何家冲出发'],
+  [toDay('1934-12-18'),'黎平会议转兵贵州；血战湘江后中央红军由8.6万余人锐减至3万余人'],
+  [toDay('1935-01-15'),'遵义会议 · 确立毛泽东在党中央和红军的领导地位，四渡赤水'],
+  [toDay('1935-05-09'),'巧渡金沙江、强渡大渡河、飞夺泸定桥、翻越夹金山'],
+  [toDay('1935-06-18'),'懋功会师 · 红一、红四方面军会合，混编左右两路军北上'],
+  [toDay('1935-08-21'),'过草地；张国焘拒绝北上，中央率陕甘支队先行北上'],
+  [toDay('1935-09-15'),'红二十五军永坪会师，合编红十五军团'],
+  [toDay('1935-10-19'),'中央红军抵达吴起镇；11月恢复红一方面军番号、直罗镇战役奠基礼'],
+  [toDay('1935-11-19'),'红二、六军团桑植突围长征；红四方面军南下川康边受挫'],
+  [toDay('1936-04-01'),'红二、六军团石鼓渡金沙江；红四方面军整编为6军19师；西方野战军西征'],
+  [toDay('1936-07-05'),'甘孜会师 · 红二方面军成立，红二、四方面军共同北上'],
+  [toDay('1936-10-09'),'会宁会师（10.9）、将台堡会师（10.22）· 三大主力会师，长征胜利结束']
+];
+function phaseText(d){let t=PHASES[0][1];for(const p of PHASES){if(d>=p[0])t=p[1];}return t;}
+function buildTicks(){
+  $('#tlTicks').innerHTML=ALL_EVENTS.filter((e,i)=>i%2===0||['会师','出发','终点'].includes(e.ev.c)).map(e=>{
+    const pct=Math.max(0,Math.min(100,toDay(e.date)/TOTAL_DAYS*100));
+    const big=['会师','出发','终点'].includes(e.ev.c);
+    return `<div class="tick ${big?'major':''}" style="left:${pct}%;background:${ARMY[e.army]?ARMY[e.army].color:'#999'}"
+      data-ev="${esc(e.id)}" title="${esc(e.date+' '+e.name)}"></div>`;
+  }).join('');
+  $$('#tlTicks .tick').forEach(t=>t.onclick=()=>focusEvent(t.dataset.ev));
+}
+function updateTimeline(){
+  const d=dayToDate(state.day);
+  $('#tlDate').textContent=d.slice(0,4)+'.'+d.slice(5,7);
+  $('#tlPhase').textContent=phaseText(state.day);
+  $('#tlRange').value=Math.round(state.day/TOTAL_DAYS*1000);
+  $('#tlFill').style.width=(state.day/TOTAL_DAYS*100)+'%';
+  syncLayers();
+}
+$('#tlRange').max=1000;
+$('#tlRange').oninput=e=>{state.day=Math.round(e.target.value/1000*TOTAL_DAYS);updateTimeline();stopPlay();};
+$$('.tl-labels span').forEach(s=>s.onclick=()=>{
+  state.day=Math.min(TOTAL_DAYS,toDay(s.dataset.jump)+2);stopPlay();updateTimeline();
+});
+function tickPlay(){
+  state.day+=Math.round(5*state.speed);
+  if(state.day>=TOTAL_DAYS){state.day=TOTAL_DAYS;stopPlay();}
+  updateTimeline();
+}
+function startPlay(){
+  if(state.day>=TOTAL_DAYS) state.day=toDay('1934-09-01');
+  state.playing=true;$('#btnPlay').textContent='❚❚';
+  clearInterval(timer);timer=setInterval(tickPlay,55);updateTimeline();
+}
+function stopPlay(){ state.playing=false;$('#btnPlay').textContent='▶';clearInterval(timer);timer=null; }
+$('#btnPlay').onclick=()=>state.playing?stopPlay():startPlay();
+$$('#speed button').forEach(b=>b.onclick=()=>{
+  state.speed=parseFloat(b.dataset.s);
+  $$('#speed button').forEach(x=>x.classList.toggle('on',x===b));
+  if(state.playing){clearInterval(timer);timer=setInterval(tickPlay,55);}
+});
+
+/* 面板折叠 */
+$('#btnLeft').onclick=()=>{
+  const app=$('#app');
+  if(window.innerWidth<=960){app.classList.toggle('show-left');app.classList.remove('show-right');}
+  else {app.classList.toggle('no-left');}
+  $('#btnLeft').classList.toggle('on',!app.classList.contains('no-left'));
+};
+$('#btnRight').onclick=()=>{
+  const app=$('#app');
+  if(window.innerWidth<=960){app.classList.toggle('show-right');app.classList.remove('show-left');}
+  else {app.classList.toggle('no-right');}
+  $('#btnRight').classList.toggle('on',!app.classList.contains('no-right'));
+};
+
+/* ============================================================
+   七、启动
+   ============================================================ */
+renderLeft();renderUnits();renderEvents();renderOverview();renderKmt();renderSources();
+buildTicks();updateTimeline();
+/* 地图 SDK 为异步加载，可能晚于 load 事件：轮询等待 TMap 就绪（最多约 20 秒） */
+(function bootMap(){
+  let n=0;
+  const tick=()=>{
+    if(map) return;
+    if(typeof TMap!=='undefined'){ initMap(); return; }
+    if(++n<80) setTimeout(tick,250);
+    else $('#mapFallback').classList.add('show');
+  };
+  tick();
+})();
+</script>
+</body>
+</html>
