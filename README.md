@@ -1,6 +1,8 @@
 # 红军长征全景交互地图
 
-单文件 HTML 交互地图应用（`long-march-map.html`），基于腾讯地图 GL JS，浏览器直接打开即可使用。
+单文件 HTML 交互地图应用（`index.html`），基于腾讯地图 GL JS，浏览器直接打开即可使用。
+
+**在线访问（GitHub Pages）**：<https://vstony.github.io/long-march-map/>
 
 ## 功能
 
@@ -17,4 +19,4 @@
 
 ## 使用
 
-无需构建，直接用浏览器打开 `long-march-map.html`（需联网加载地图 SDK）。桌面端与移动端均已适配。
+无需构建，直接用浏览器打开 `index.html`（需联网加载地图 SDK），或访问上面的在线地址。桌面端与移动端均已适配。
