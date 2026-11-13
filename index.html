@@ -117,6 +117,41 @@
     border:1px solid var(--line);border-radius:7px;padding:8px 11px;font-size:10px;color:var(--muted);
     max-width:250px;line-height:1.65;backdrop-filter:blur(8px)}
   .map-bottom{position:absolute;bottom:14px;left:14px;z-index:1202;display:flex;gap:7px}
+  /* —— 全局搜索（左栏顶部）—— */
+  .search-box{position:relative}
+  .search-box input{width:100%;box-sizing:border-box;background:var(--panel);border:1px solid var(--line);
+    border-radius:6px;padding:8px 9px 8px 26px;color:var(--text);font-size:12px;outline:none;
+    font-family:inherit;line-height:1.4}
+  .search-box input:focus{border-color:#8a6d3f}
+  .search-box input::placeholder{color:var(--faint)}
+  .search-box:before{content:"⌕";position:absolute;left:9px;top:7px;color:var(--muted);
+    font-size:14px;pointer-events:none;line-height:1.4}
+  .sr-kbd{position:absolute;right:7px;top:7px;font-size:9px;color:var(--faint);
+    border:1px solid #4a3d30;border-radius:3px;padding:1px 4px;pointer-events:none;
+    font-family:inherit;background:rgba(0,0,0,.18)}
+  .search-box input{padding-right:52px}
+  .search-box:focus-within .sr-kbd{display:none}
+  .sr-list{position:absolute;top:calc(100% + 5px);left:0;right:0;z-index:80;
+    background:rgba(24,20,16,.97);border:1px solid var(--line);border-radius:7px;
+    box-shadow:0 10px 28px rgba(0,0,0,.45);max-height:min(430px,64vh);overflow-y:auto;
+    backdrop-filter:blur(8px)}
+  .sr-list.hide{display:none}
+  .sr-group{font-size:10px;color:var(--gold);letter-spacing:1.5px;padding:6px 10px 3px;
+    border-top:1px solid #3b322a;display:flex;align-items:center;gap:6px}
+  .sr-cnt{color:var(--faint);letter-spacing:0;font-size:9px}
+  .sr mark{background:rgba(232,200,135,.26);color:#ffe7b0;border-radius:2px;padding:0 1px}
+  .sr-group:first-child{border-top:none}
+  .sr{display:flex;gap:7px;align-items:flex-start;padding:7px 10px;cursor:pointer}
+  .sr:hover,.sr.on{background:rgba(138,109,63,.16)}
+  .sr-txt{min-width:0;flex:1;display:block}
+  .sr-badge{flex:none;font-size:9px;padding:2px 5px;border-radius:3px;margin-top:2px;
+    white-space:nowrap;color:#141014;font-weight:600}
+  .sr-t{display:block;font-size:12px;color:var(--text);line-height:1.45;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  .sr-s{display:block;font-size:10px;color:var(--muted);margin-top:1px;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  .sr-empty{padding:12px 10px;font-size:11px;color:var(--muted);line-height:1.9}
+  .sr-tip{padding:6px 10px;font-size:9.5px;color:var(--faint);border-top:1px solid #3b322a}
   .zbtn{background:rgba(24,20,16,.92);border:1px solid var(--line);color:#e6dccd;
     width:30px;height:30px;border-radius:5px;font-size:16px;line-height:1}
   .zbtn:hover{border-color:var(--gold);color:var(--gold)}
@@ -306,6 +341,15 @@
 
   <!-- 左侧：部队导航 -->
   <aside class="side" id="sidebarL">
+    <div class="sec">
+      <h2>全局搜索</h2>
+      <div class="search-box" id="searchBox">
+        <input id="searchInput" type="text" placeholder="人名 · 地名 · 番号 · 江河 · 年代"
+          autocomplete="off" spellcheck="false">
+        <kbd class="sr-kbd" id="srKbd">Ctrl K</kbd>
+        <div id="searchResults" class="sr-list hide"></div>
+      </div>
+    </div>
     <div class="sec">
       <h2>参战部队 / 番号</h2>
       <div id="armyCards"></div>
@@ -1740,6 +1784,291 @@ function focusKmt(id){
     openInfo(html,o.g[0][0],o.g[0][1]);
   }
 }
+
+/* ============================================================
+   五点五、全局搜索：人名 / 地名 / 部队番号 / 江河 / 年代
+   ============================================================ */
+const stripTags = s => String(s==null?'':s).replace(/<[^>]+>/g,'');
+const SR_TYPES = {
+  date :{label:'时间轴', color:'#e8c887'},
+  people:{label:'人物',  color:'#c99bd0'},
+  army :{label:'部队',   color:'#c9a25a'},
+  unit :{label:'番号',   color:'#b08d55'},
+  event:{label:'事件',   color:'#e0a79a'},
+  node :{label:'节点',   color:'#9c917f'},
+  kmt  :{label:'国军',   color:'#8fb3dd'},
+  river:{label:'江河',   color:'#6db6cc'}
+};
+const SR_INDEX=[];
+/* 1) 部队（含沿革、首长、任务全文） */
+ARMY_ORDER.forEach(aid=>{
+  const a=ARMY[aid];
+  SR_INDEX.push({type:'army',army:aid,title:a.name,sub:a.en+' · '+a.meta[0]+' 出发',
+    hay:[a.name,a.en,a.sub,a.lead,a.start,a.end,a.province,a.mission,
+      ...a.changes.map(c=>c[0]+' '+c[1])].map(stripTags).join(' '),
+    act(){ state.visible[aid]=true; state.selected=aid;
+      stopPlay(); renderLeft(); renderUnits(); renderEvents(); updateGlow();
+      setTab('units'); flyTo(a.view,true); }});
+  a.formation.forEach((f,fi)=>{
+    SR_INDEX.push({type:'unit',army:aid,title:stripTags(f.t),sub:stripTags(f.d).replace(/\s+/g,'').slice(0,26)+'…',
+      hay:stripTags([f.t,f.d,f.tag,f.role].join(' ')),
+      act(){ state.visible[aid]=true; state.selected=aid;
+        stopPlay(); renderLeft(); renderUnits(); renderEvents(); updateGlow();
+        setTab('units'); flyTo(a.view,true);
+        setTimeout(()=>{
+          const nodes=$$('#pane-units .tree .node');
+          if(nodes[fi]){
+            nodes[fi].scrollIntoView({block:'center',behavior:'smooth'});
+            nodes[fi].style.background='rgba(200,160,80,.20)';
+            setTimeout(()=>{ nodes[fi].style.background=''; },2400);
+          }
+        },80); }});
+  });
+});
+/* 2) 事件（标题、地点、描述、番号、日期全文） */
+ALL_EVENTS.forEach(e=>{
+  SR_INDEX.push({type:'event',army:e.army,title:(e.name||e.ev.t),
+    sub:e.date+' · '+e.place+' · '+ARMY_NAME(e.army),
+    hay:[(e.name||e.ev.t),e.place,e.date,e.ev.t,e.ev.d,e.ev.u].map(stripTags).join(' '),
+    act(){ focusEvent(e.id); }});
+});
+/* 3) 无事件的路线节点 */
+ARMY_ORDER.forEach(aid=>ROUTES[aid].forEach(p=>{
+  if(p.ev) return;
+  SR_INDEX.push({type:'node',army:aid,title:p.name,sub:p.date+' · '+ARMY_NAME(aid)+' 路线节点',
+    hay:p.name+' '+p.date,
+    act(){ state.visible[aid]=true; state.selected=aid;
+      stopPlay(); state.day=Math.max(0,Math.min(TOTAL_DAYS,toDay(p.date)));
+      renderLeft(); renderUnits(); renderEvents(); updateTimeline();
+      flyTo({center:[p.g[0],p.g[1]],zoom:7.2}); }});
+}));
+/* 4) 国军部署（番号、将领、时间全文） */
+KMT_OPS.forEach(o=>{
+  SR_INDEX.push({type:'kmt',title:o.title,sub:o.tag+' · '+o.from,
+    hay:stripTags([o.title,o.tag,o.d,o.u,o.from,o.to].join(' ')),
+    act(){ stopPlay(); state.day=Math.min(TOTAL_DAYS,Math.max(0,toDay(o.from)));
+      updateTimeline(); syncLayers();
+      if(map) flyTo({center:[o.g[0][0],o.g[0][1]],zoom:6.6});
+      focusKmt('k-'+o.id); }});
+});
+/* 5) 江河 */
+RIVERS.forEach(r=>{
+  SR_INDEX.push({type:'river',title:r.name,sub:'主要江河 · 示意河道',
+    hay:r.name,
+    act(){ state.showRivers=true; const tg=$('#tgRivers'); if(tg) tg.checked=true;
+      syncLayers(); flyTo({center:[r.gl[0],r.gl[1]],zoom:6.2});
+      const rel=ALL_EVENTS.filter(e=>stripTags((e.name||'')+(e.ev?e.ev.t:'')+e.place+(e.ev?e.ev.d:'')).indexOf(r.name)>=0).slice(0,6);
+      const html=`<div class="iw"><div class="iw-date" style="color:${RIVER_TEXT}">主要江河 · 示意河道</div>
+        <div class="iw-title" style="color:${RIVER_TEXT}">${esc(r.name)}</div>
+        <div class="iw-desc">河道为按今地名取点的示意折线，非精确水系。</div>
+        ${rel.length?`<div class="iw-unit"><b style="color:${RIVER_TEXT}">相关事件</b><br>
+          ${rel.map(e=>`<a href="javascript:void(0)" data-sr-ev="${esc(e.id)}"
+            style="color:#cfe2fb;text-decoration:underline;cursor:pointer">${esc(e.name||e.ev.t)}</a>`).join('　')}`:''}</div></div>`;
+      openInfo(html,r.gl[0],r.gl[1]);
+      setTimeout(()=>{ $$('.iw [data-sr-ev]').forEach(a=>a.onclick=()=>focusEvent(a.dataset.srEv)); },60);
+    }});
+});
+/* 6) 人物：以建制/首长描述里加粗的 <b>人名</b> 为主，另补一份未加粗的领导人名单 */
+const PERSON_OF = new Map();
+(()=>{
+  /* 真名 2—4 字且不含建制/战役词，用来剔除「谭家桥战斗」「红十五军团」这类误抽 */
+  const BAD=/方面军|纵队|支队|军团|红军|中央|会议|会师|整编|合编|改编|成立|战斗|战役|失败|胜利|转移|突围|渡口|封锁|游击|根据地|苏区|军区|军委|政府|委员会|大学|独立团|军|师|团|队|路|部|委|局|处|校|支|第|纵|省|县|区|镇|村|编|战|斗|会|山|河|江|桥/;
+  const ROLES='军团长|副军团长|政委|政治委员|副政委|军长|副军长|总指挥|副总指挥|司令员|副司令员|司令|参谋长|主席|副主席|书记|政治部主任|主任|师长|团长|部长|委员';
+  const ROLE_OK=/军团长|政委|政治委员|军长|总指挥|司令员|司令|参谋长|主任|主席|书记|师长|团长|部长|委员|代表|顾问|负责人/;
+  const isName=s=>!!s && s.length>=2 && s.length<=4 && !BAD.test(s);
+  const add=(nm,role,aid,unit,fi)=>{
+    if(!isName(nm)) return;
+    let rec=PERSON_OF.get(nm);
+    if(!rec){ rec={name:nm,items:[]}; PERSON_OF.set(nm,rec); }
+    if(!rec.items.some(x=>x.aid===aid&&x.unit===unit&&x.role===role))
+      rec.items.push({aid,unit,role,fi});
+  };
+  const scan=(text,unit,fi,aid)=>{
+    if(!text) return;
+    const re=/([\u4e00-\u9fa5、，,。；;：:\s（）()0-9]{0,14})<b>([\u4e00-\u9fa5·]{2,6})<\/b>/g;
+    let m;
+    while((m=re.exec(text))){
+      const nm=m[2];
+      if(!isName(nm)) continue;
+      let role=(m[1]||'').split(/[。；;，,]/).pop().replace(/^[、：:\s（）()0-9]+/,'').trim();
+      if(role.length>8) role=role.slice(-8);
+      /* 加粗词前必须紧跟职务词，否则是地名/事件名（如「石鼓」「将台堡」） */
+      if(!ROLE_OK.test(role)) continue;
+      add(nm,role,aid,unit,fi);
+    }
+    /* 反向语序：「<b>方志敏</b>任军团长」 */
+    const re2=new RegExp('<b>([\\u4e00-\\u9fa5·]{2,6})<\\/b>(?:任|为|兼|担任)?[\\u4e00-\\u9fa5]{0,8}?('+ROLES+')','g');
+    while((m=re2.exec(text))){
+      if(!isName(m[1])) continue;
+      add(m[1],m[2],aid,unit,fi);
+    }
+  };
+  ARMY_ORDER.forEach(aid=>{
+    const a=ARMY[aid];
+    scan(a.lead,'',-1,aid);
+    a.formation.forEach((f,fi)=>scan(f.d,f.t,fi,aid));
+    a.changes.forEach(c=>scan(c[1],'',-1,aid));
+  });
+  /* 上述段落里以普通文字出现、未加粗的关键领导人（职务据公开史料） */
+  const SUPP=[
+    ['毛泽东','政治委员','central'],  ['朱德','红军总司令','central'],
+    ['周恩来','红军总政治委员','central'], ['张闻天','中共中央总负责人','central'],
+    ['博古','临时中央负责人','central'],  ['李德','共产国际军事顾问','central'],
+    ['王稼祥','总政治部主任','central'],  ['刘伯承','总参谋长','central'],
+    ['刘少奇','中央代表','central'],    ['凯丰','红九军团中央代表','central'],
+    ['陈毅','中央政府办事处主任','central'], ['项英','中央分局书记','central'],
+    ['瞿秋白','中央分局宣传部部长','central']
+  ];
+  SUPP.forEach(([nm,role,aid])=>add(nm,role,aid,'',-1));
+  [...PERSON_OF.values()].forEach(p=>{
+    if(!p.items.length) return;
+    const first=p.items[0];
+    const rel=ALL_EVENTS.filter(e=>stripTags([e.name,e.ev?e.ev.t:'',e.ev?e.ev.d:'',e.place].join('')).indexOf(p.name)>=0);
+    p.rel=rel.slice(0,6);
+    const where=[first.role,first.unit].filter(Boolean).join(' ')||ARMY_NAME(first.aid);
+    p.hay=[p.name,...p.items.map(x=>[x.role,x.unit,ARMY_NAME(x.aid)].join(' ')),...rel.map(e=>e.name||e.ev.t)].join(' ');
+    SR_INDEX.push({type:'people',army:first.aid||null,title:p.name,
+      sub:(where||'红军将领')+(p.items.length>1?' · 另 '+(p.items.length-1)+' 处任职':''),
+      hay:p.hay,
+      act(){
+        const it=first; if(!it) return;
+        const aid=it.aid, a=ARMY[aid];
+        state.visible[aid]=true; state.selected=aid;
+        stopPlay(); renderLeft(); renderUnits(); renderEvents(); updateGlow();
+        setTab('units'); flyTo(a.view,true);
+        if(it.fi>=0) setTimeout(()=>{
+          const nodes=$$('#pane-units .tree .node');
+          if(nodes[it.fi]){ nodes[it.fi].scrollIntoView({block:'center',behavior:'smooth'});
+            nodes[it.fi].style.background='rgba(200,160,80,.20)';
+            setTimeout(()=>{ nodes[it.fi].style.background=''; },2400); }
+        },80);
+        const roles=p.items.map(x=>(x.role?x.role+' ':'')+(x.unit||'')+'（'+ARMY_NAME(x.aid)+'）').join('<br>');
+        const html=`<div class="iw"><div class="iw-date">人物 · 红军将领</div>
+          <div class="iw-title">${esc(p.name)}</div>
+          <div class="iw-desc">${roles}</div>
+          ${p.rel.length?`<div class="iw-unit"><b>相关事件</b><br>${p.rel.map(e=>
+            `<a href="javascript:void(0)" data-sr-ev="${esc(e.id)}" style="color:#cfe2fb;text-decoration:underline;cursor:pointer">${esc(e.name||e.ev.t)}</a>`).join('　')}</div>`:''}</div>`;
+        openInfo(html,a.view.center[0],a.view.center[1]);
+        setTimeout(()=>{ $$('.iw [data-sr-ev]').forEach(x=>x.onclick=()=>focusEvent(x.dataset.srEv)); },60);
+      }});
+  });
+})();
+/* 年代识别：1935 / 1935年 / 1935-01 / 1935年1月 → 时间轴跳转 */
+function parseDateQuery(q){
+  let m=q.match(/^(19\d{2})\s*年?\s*$/);
+  if(m) return {y:+m[1],m:null};
+  m=q.match(/^(19\d{2})\s*[-\.\/年]\s*(\d{1,2})\s*月?$/);
+  if(m) return {y:+m[1],m:+m[2]};
+  return null;
+}
+let SR_CUR=[], SR_SEL=0, SR_Q='';
+function doSearch(qRaw){
+  const raw=qRaw.trim();
+  const joined=raw.toLowerCase().replace(/\s+/g,'');
+  if(!joined){ hideSR(); return; }
+  const tokens=raw.toLowerCase().split(/\s+/).filter(Boolean);
+  SR_Q=tokens;
+  const res=[];
+  const dq=parseDateQuery(raw);
+  if(dq && dq.y>=1934 && dq.y<=1936){
+    const mTxt=dq.m?String(dq.m).padStart(2,'0'):(dq.y===1934?'07':'01');
+    const ds=dq.y+'-'+mTxt+'-01';
+    const dd=Math.max(0,Math.min(TOTAL_DAYS,toDay(ds)));
+    res.push({type:'date',title:'跳转时间轴 → '+fmtDate(ds),_s:260,
+      sub:dq.m?(dq.y+' 年 '+dq.m+' 月'):(dq.y+' 年 全年回放起点'),
+      hay:'', act(){ stopPlay(); state.day=dd; updateTimeline(); syncLayers(); }});
+  }
+  SR_INDEX.forEach(it=>{
+    const hay=(it.hay||'').toLowerCase(), t=(it.title||'').toLowerCase();
+    if(!tokens.every(tk=>hay.indexOf(tk)>=0)) return;
+    /* 标题命中远重于正文命中，保证搜「金沙江」时江河排在部队前面 */
+    let s=hay.indexOf(joined)>=0?26:16;
+    if(t===joined) s+=140;
+    else if(t.startsWith(joined)) s+=110;
+    else if(t.indexOf(joined)>=0) s+=80;
+    else if(tokens.every(tk=>t.indexOf(tk)>=0)) s+=58;
+    /* 同分时的类型倾向：具体条目（人物/江河/事件）优先于宽泛的部队条目 */
+    s += ({people:10,river:8,event:6,unit:4,node:3,kmt:3,army:0})[it.type]||0;
+    it._s=s; res.push(it);
+  });
+  res.sort((a,b)=>(b._s||0)-(a._s||0));
+  renderSR(res.slice(0,40));
+}
+function srHL(text){
+  let h=esc(text);
+  if(!SR_Q.length) return h;
+  SR_Q.forEach(tk=>{
+    if(!tk) return;
+    const e=tk.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    h=h.replace(new RegExp(e,'gi'),m=>'<mark>'+m+'</mark>');
+  });
+  return h;
+}
+function renderSR(list){
+  SR_CUR=list; SR_SEL=0;
+  const box=$('#searchResults');
+  if(!list.length){
+    box.innerHTML='<div class="sr-empty">无匹配结果<br>试试：林彪 · 遵义 · 金沙江 · 红一军团 · 1935</div>';
+    box.classList.remove('hide'); return;
+  }
+  /* 分组按该组最高匹配分排序，组内也按分数排 */
+  const groups={};
+  list.forEach(it=>{ (groups[it.type]=groups[it.type]||[]).push(it); });
+  const order=Object.keys(groups).sort((a,b)=>{
+    if(a==='date') return -1; if(b==='date') return 1;
+    return (groups[b][0]._s||0)-(groups[a][0]._s||0);
+  });
+  let html='';
+  order.forEach(tp=>{
+    const items=groups[tp];
+    html+=`<div class="sr-group">${SR_TYPES[tp].label}<span class="sr-cnt">${items.length}</span></div>`;
+    items.forEach(it=>{
+      const i=list.indexOf(it);
+      const bc=(tp==='event'||tp==='army'||tp==='unit'||tp==='node'||tp==='people')&&ARMY[it.army]
+        ? ARMY[it.army].color : SR_TYPES[tp].color;
+      html+=`<div class="sr" data-i="${i}">
+        <span class="sr-badge" style="background:${bc}">${SR_TYPES[tp].label}</span>
+        <span class="sr-txt"><span class="sr-t" title="${esc(it.title)}">${srHL(it.title)}</span>
+        <span class="sr-s">${srHL(it.sub)}</span></span></div>`;
+    });
+  });
+  html+=`<div class="sr-tip">共 ${list.length} 条 · Enter 打开第一条 · ↑↓ 选择 · Esc 关闭</div>`;
+  box.innerHTML=html; box.classList.remove('hide');
+  $$('#searchResults .sr').forEach(el=>el.onclick=()=>runSR(+el.dataset.i));
+  markSR();
+}
+function runSR(i){
+  const it=SR_CUR[i]; if(!it) return;
+  hideSR(); $('#searchInput').blur();
+  try{ it.act(); }catch(e){ console.warn('search action failed',e); }
+}
+function hideSR(){ $('#searchResults').classList.add('hide'); }
+function markSR(){
+  $$('#searchResults .sr').forEach(el=>el.classList.toggle('on',+el.dataset.i===SR_SEL));
+  const el=$(`#searchResults .sr[data-i="${SR_SEL}"]`);
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+const srInp=$('#searchInput');
+srInp.addEventListener('input',()=>doSearch(srInp.value));
+srInp.addEventListener('focus',()=>{ if(srInp.value.trim()) doSearch(srInp.value); });
+srInp.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){ if(SR_CUR.length) runSR(SR_SEL); }
+  else if(e.key==='ArrowDown'){ e.preventDefault(); SR_SEL=Math.min(SR_CUR.length-1,SR_SEL+1); markSR(); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); SR_SEL=Math.max(0,SR_SEL-1); markSR(); }
+  else if(e.key==='Escape'){ hideSR(); srInp.blur(); }
+});
+document.addEventListener('click',e=>{ if(!e.target.closest('#searchBox')) hideSR(); });
+/* 全局快捷键：Ctrl/⌘+K 或 / 聚焦搜索框 */
+window.addEventListener('keydown',e=>{
+  const t=e.target||{}, tag=(t.tagName||'').toLowerCase();
+  const typing=tag==='input'||tag==='textarea'||tag==='select'||t.isContentEditable;
+  if((e.ctrlKey||e.metaKey)&&(e.key==='k'||e.key==='K')){
+    e.preventDefault(); srInp.focus(); srInp.select(); return;
+  }
+  if(!typing&&(e.key==='/'||e.key==='／')){
+    e.preventDefault(); srInp.focus(); return;
+  }
+});
 
 /* ============================================================
    六、时间轴
